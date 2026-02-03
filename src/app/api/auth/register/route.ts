@@ -57,9 +57,6 @@ export async function POST(request: NextRequest) {
   )
 
   if (!rateLimitResult.allowed) {
-    console.warn(
-      `Rate limit exceeded for register from ${identifier} at ${new Date().toISOString()}`
-    )
     return NextResponse.json(
       {
         success: false,

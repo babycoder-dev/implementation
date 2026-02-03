@@ -93,11 +93,9 @@ export async function POST(request: NextRequest) {
     }
 
     if (error instanceof TransactionError) {
-      console.error('Transaction failed:', error.cause)
       return NextResponse.json({ success: false, error: '创建任务失败，事务已回滚' }, { status: 500 })
     }
 
-    console.error('Task creation error:', error)
     return NextResponse.json({ success: false, error: '创建任务失败' }, { status: 500 })
   }
 }

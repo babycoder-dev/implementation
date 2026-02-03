@@ -26,7 +26,7 @@ export function PDFViewer({ url, onPageChange, onFinish }: PDFViewerProps) {
         setTotalPages(pdf.numPages)
         renderPage(1)
       } catch (error) {
-        console.error('Error loading PDF:', error)
+        // Error loading PDF - loading state will be cleared in finally
       } finally {
         setLoading(false)
       }
