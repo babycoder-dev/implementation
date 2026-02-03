@@ -20,6 +20,7 @@
     "create-admin": "tsx scripts/create-admin.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.981.0",
     "@neondatabase/serverless": "^1.0.2",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
