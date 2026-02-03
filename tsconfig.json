@@ -15,8 +15,12 @@
     "plugins": [
       {
         "name": "next"
+      },
+      {
+        "name": "vitest"
       }
     ],
+    "types": ["vitest/globals"],
     "paths": {
       "@/*": ["./src/*"]
     }
