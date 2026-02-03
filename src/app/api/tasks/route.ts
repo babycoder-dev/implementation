@@ -5,6 +5,7 @@ import { validateRequest } from '@/lib/auth/middleware'
 import { createTaskSchema } from '@/lib/validations/task'
 import { eq, and } from 'drizzle-orm'
 import { z } from 'zod'
+import { transaction, TransactionError } from '@/db/transaction'
 
 export async function POST(request: NextRequest) {
   const auth = await validateRequest(request)
@@ -27,48 +28,53 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const validated = createTaskSchema.parse(body)
 
-    // 创建任务
-    const [task] = await db
-      .insert(tasks)
-      .values({
-        title: validated.title,
-        description: validated.description,
-        deadline: validated.deadline ? new Date(validated.deadline) : null,
-        createdBy: auth.userId,
-      })
-      .returning()
+    // 使用事务创建任务及其关联数据
+    const task = await transaction(async (tx) => {
+      // 创建任务
+      const [createdTask] = await tx
+        .insert(tasks)
+        .values({
+          title: validated.title,
+          description: validated.description,
+          deadline: validated.deadline ? new Date(validated.deadline) : null,
+          createdBy: auth.userId,
+        })
+        .returning()
 
-    // 创建文件记录
-    await db.insert(taskFiles).values(
-      validated.files.map((file, index) => ({
-        taskId: task.id,
-        title: file.title,
-        fileUrl: file.fileUrl,
-        fileType: file.fileType,
-        fileSize: file.fileSize,
-        order: index,
-      }))
-    )
-
-    // 分配用户
-    await db.insert(taskAssignments).values(
-      validated.assignedUserIds.map((userId) => ({
-        taskId: task.id,
-        userId,
-      }))
-    )
-
-    // 创建题目
-    if (validated.questions && validated.questions.length > 0) {
-      await db.insert(quizQuestions).values(
-        validated.questions.map((question) => ({
-          taskId: task.id,
-          question: question.question,
-          options: question.options,
-          correctAnswer: question.correctAnswer,
+      // 创建文件记录
+      await tx.insert(taskFiles).values(
+        validated.files.map((file, index) => ({
+          taskId: createdTask.id,
+          title: file.title,
+          fileUrl: file.fileUrl,
+          fileType: file.fileType,
+          fileSize: file.fileSize,
+          order: index,
         }))
       )
-    }
+
+      // 分配用户
+      await tx.insert(taskAssignments).values(
+        validated.assignedUserIds.map((userId) => ({
+          taskId: createdTask.id,
+          userId,
+        }))
+      )
+
+      // 创建题目
+      if (validated.questions && validated.questions.length > 0) {
+        await tx.insert(quizQuestions).values(
+          validated.questions.map((question) => ({
+            taskId: createdTask.id,
+            question: question.question,
+            options: question.options,
+            correctAnswer: question.correctAnswer,
+          }))
+        )
+      }
+
+      return createdTask
+    })
 
     return NextResponse.json(
       {
@@ -79,11 +85,16 @@ export async function POST(request: NextRequest) {
     )
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const errorMessage = error.errors?.[0]?.message || '数据验证失败'
+      const errorMessage = error.issues?.[0]?.message || '数据验证失败'
       return NextResponse.json(
         { success: false, error: errorMessage },
         { status: 400 }
       )
+    }
+
+    if (error instanceof TransactionError) {
+      console.error('Transaction failed:', error.cause)
+      return NextResponse.json({ success: false, error: '创建任务失败，事务已回滚' }, { status: 500 })
     }
 
     console.error('Task creation error:', error)

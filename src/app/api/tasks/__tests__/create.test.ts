@@ -8,6 +8,7 @@ vi.mock('@/db', () => ({
   db: {
     select: vi.fn(),
     insert: vi.fn(),
+    transaction: vi.fn(),
   },
 }))
 
@@ -61,17 +62,23 @@ describe('POST /api/tasks', () => {
       limit: mockUserLimit,
     } as any)
 
-    // Mock task insert
-    const mockTaskInsertValues = vi.fn().mockReturnThis()
-    const mockTaskInsertReturning = vi.fn().mockResolvedValue([mockTask])
+    // Mock transaction
+    const mockTxInsertValues = vi.fn().mockReturnThis()
+    const mockTxInsertReturning = vi.fn().mockResolvedValue([mockTask])
 
-    vi.mocked(db.insert).mockReturnValue({
-      values: mockTaskInsertValues,
+    const mockTransaction = vi.fn().mockImplementation(async (callback) => {
+      return await callback({
+        insert: vi.fn().mockReturnValue({
+          values: mockTxInsertValues,
+        }),
+      } as any)
+    })
+
+    mockTxInsertValues.mockReturnValue({
+      returning: mockTxInsertReturning,
     } as any)
 
-    mockTaskInsertValues.mockReturnValue({
-      returning: mockTaskInsertReturning,
-    } as any)
+    vi.mocked(db.transaction).mockImplementation(mockTransaction)
 
     const request = new Request('http://localhost:3000/api/tasks', {
       method: 'POST',
@@ -253,16 +260,23 @@ describe('POST /api/tasks', () => {
       limit: mockUserLimit,
     } as any)
 
-    const mockTaskInsertValues = vi.fn().mockReturnThis()
-    const mockTaskInsertReturning = vi.fn().mockResolvedValue([mockTask])
+    // Mock transaction
+    const mockTxInsertValues = vi.fn().mockReturnThis()
+    const mockTxInsertReturning = vi.fn().mockResolvedValue([mockTask])
 
-    vi.mocked(db.insert).mockReturnValue({
-      values: mockTaskInsertValues,
+    const mockTransaction = vi.fn().mockImplementation(async (callback) => {
+      return await callback({
+        insert: vi.fn().mockReturnValue({
+          values: mockTxInsertValues,
+        }),
+      } as any)
+    })
+
+    mockTxInsertValues.mockReturnValue({
+      returning: mockTxInsertReturning,
     } as any)
 
-    mockTaskInsertValues.mockReturnValue({
-      returning: mockTaskInsertReturning,
-    } as any)
+    vi.mocked(db.transaction).mockImplementation(mockTransaction)
 
     const request = new Request('http://localhost:3000/api/tasks', {
       method: 'POST',
