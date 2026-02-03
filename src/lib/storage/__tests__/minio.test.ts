@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { uploadFile, getFileUrl } from '../minio'
 
+// Mock fetch at module level
+const mockFetch = vi.fn()
+vi.stubGlobal('fetch', mockFetch)
+
 // Mock fetch globally
 global.fetch = vi.fn()
 
