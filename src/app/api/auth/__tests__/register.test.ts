@@ -92,7 +92,7 @@ describe('POST /api/auth/register', () => {
       method: 'POST',
       body: JSON.stringify({
         username: 'testuser',
-        password: 'Test123',
+        password: 'Test12345',
         name: 'Test User',
       }),
     })
@@ -117,7 +117,7 @@ describe('POST /api/auth/register', () => {
       method: 'POST',
       body: JSON.stringify({
         username: 'existing',
-        password: 'Test123',
+        password: 'Test12345',
         name: 'Test User',
       }),
     })
@@ -135,7 +135,7 @@ describe('POST /api/auth/register', () => {
       method: 'POST',
       body: JSON.stringify({
         username: 'invalid username!',
-        password: 'Test123',
+        password: 'Test12345',
         name: 'Test User',
       }),
     })
@@ -153,7 +153,24 @@ describe('POST /api/auth/register', () => {
       method: 'POST',
       body: JSON.stringify({
         username: 'testuser',
-        password: '12345',
+        password: 'Test123',
+      }),
+    })
+
+    const response = await POST(request as any)
+    const data = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(data.success).toBe(false)
+    expect(data.error).toContain('密码至少需要 8 个字符')
+  })
+
+  it('should return error for password without uppercase letter', async () => {
+    const request = new Request('http://localhost:3000/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({
+        username: 'testuser',
+        password: 'test12345',
         name: 'Test User',
       }),
     })
@@ -163,7 +180,120 @@ describe('POST /api/auth/register', () => {
 
     expect(response.status).toBe(400)
     expect(data.success).toBe(false)
-    expect(data.error).toContain('密码至少需要 6 个字符')
+    expect(data.error).toContain('密码必须包含至少一个大写字母')
+  })
+
+  it('should return error for password without digit', async () => {
+    const request = new Request('http://localhost:3000/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({
+        username: 'testuser',
+        password: 'Testabcde',
+        name: 'Test User',
+      }),
+    })
+
+    const response = await POST(request as any)
+    const data = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(data.success).toBe(false)
+    expect(data.error).toContain('密码必须包含至少一个数字')
+  })
+
+  it('should return error for weak password "password"', async () => {
+    const request = new Request('http://localhost:3000/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({
+        username: 'testuser',
+        password: 'Password1',
+        name: 'Test User',
+      }),
+    })
+
+    const response = await POST(request as any)
+    const data = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(data.success).toBe(false)
+    expect(data.error).toContain('密码过于简单')
+  })
+
+  it('should return error for weak password "123456"', async () => {
+    const request = new Request('http://localhost:3000/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({
+        username: 'testuser2',
+        password: '12345678',
+        name: 'Test User',
+      }),
+    })
+
+    const response = await POST(request as any)
+    const data = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(data.success).toBe(false)
+    // First check is for uppercase letter since that fails first
+    expect(data.error).toContain('密码必须包含至少一个大写字母')
+  })
+
+  it('should return error for weak password "admin"', async () => {
+    const request = new Request('http://localhost:3000/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({
+        username: 'testuser2',
+        password: 'Admin123',
+        name: 'Test User',
+      }),
+    })
+
+    const response = await POST(request as any)
+    const data = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(data.success).toBe(false)
+    expect(data.error).toContain('密码过于简单')
+  })
+
+  it('should return error for weak password "qwerty"', async () => {
+    const request = new Request('http://localhost:3000/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({
+        username: 'testuserqwerty',
+        password: 'Qwerty123',
+        name: 'Test User',
+      }),
+    })
+
+    const response = await POST(request as any)
+    const data = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(data.success).toBe(false)
+    expect(data.error).toContain('密码过于简单')
+  })
+
+  it('should accept valid complex password', async () => {
+    const mockUser = createMockUser()
+    setupEmptyDbMock()
+    setupDbInsertMock(mockUser)
+
+    const request = new Request('http://localhost:3000/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({
+        username: 'testuser',
+        password: 'SecurePass123',
+        name: 'Test User',
+      }),
+    })
+
+    const response = await POST(request as any)
+    const data = await response.json()
+
+    expect(response.status).toBe(201)
+    expect(data.success).toBe(true)
+    expect(data.user).toBeDefined()
   })
 
   it('should return error for empty name', async () => {
@@ -171,7 +301,7 @@ describe('POST /api/auth/register', () => {
       method: 'POST',
       body: JSON.stringify({
         username: 'testuser',
-        password: 'Test123',
+        password: 'Test12345',
         name: '',
       }),
     })
@@ -197,7 +327,7 @@ describe('POST /api/auth/register', () => {
           method: 'POST',
           body: JSON.stringify({
             username: `testuser${i}`,
-            password: 'Test123',
+            password: 'Test12345',
             name: 'Test User',
           }),
         })
@@ -220,7 +350,7 @@ describe('POST /api/auth/register', () => {
           method: 'POST',
           body: JSON.stringify({
             username: `testuser${i}`,
-            password: 'Test123',
+            password: 'Test12345',
             name: 'Test User',
           }),
         })
@@ -232,7 +362,7 @@ describe('POST /api/auth/register', () => {
         method: 'POST',
         body: JSON.stringify({
           username: 'testuser4',
-          password: 'Test123',
+          password: 'Test12345',
           name: 'Test User',
         }),
       })
@@ -254,7 +384,7 @@ describe('POST /api/auth/register', () => {
         method: 'POST',
         body: JSON.stringify({
           username: 'testuser',
-          password: 'Test123',
+          password: 'Test12345',
           name: 'Test User',
         }),
       })
