@@ -1,4 +1,4 @@
-import { z } from 'zod'
+import { z, ZodError } from 'zod'
 
 const envSchema = z.object({
   DATABASE_URL: z.string().url(),
@@ -11,46 +11,63 @@ const envSchema = z.object({
   SESSION_SECRET: z.string(),
 })
 
+const REQUIRED_ENV_VARS = [
+  'DATABASE_URL',
+  'MINIO_ENDPOINT',
+  'MINIO_PORT',
+  'MINIO_ACCESS_KEY',
+  'MINIO_SECRET_KEY',
+  'MINIO_BUCKET',
+  'MINIO_USE_SSL',
+  'SESSION_SECRET',
+]
+
+function formatEnvValidationError(error: ZodError): string {
+  const missingVars = error.issues
+    .filter((e: unknown) => {
+      const issue = e as { code: string; received?: unknown; path: (string | number)[] }
+      return issue.code === 'invalid_type' && issue.received === 'undefined'
+    })
+    .map((e: unknown) => {
+      const issue = e as { path: (string | number)[] }
+      return issue.path.join('.')
+    })
+
+  const lines = [
+    'Missing or invalid environment variables:',
+    '',
+    ...REQUIRED_ENV_VARS.map((v) => {
+      const isMissing = missingVars.includes(v)
+      return `  ${isMissing ? '❌' : '✓'} ${v}`
+    }),
+    '',
+    'Please ensure all required environment variables are set in your .env file or environment.',
+  ]
+
+  if (error.issues.length > missingVars.length) {
+    const otherErrors = error.issues.filter((e: unknown) => {
+      const issue = e as { code: string; received?: unknown }
+      return !(issue.code === 'invalid_type' && issue.received === 'undefined')
+    })
+    lines.push('', 'Validation errors:')
+    otherErrors.forEach((e: unknown) => {
+      const issue = e as { path: (string | number)[]; message: string }
+      const path = issue.path.join('.') || 'unknown'
+      lines.push(`  - ${path}: ${issue.message}`)
+    })
+  }
+
+  return lines.join('\n')
+}
+
 export const env = (() => {
   try {
     return envSchema.parse(process.env)
   } catch (error) {
-    // 检查是否是 Zod 错误
-    if (error instanceof z.ZodError) {
-      const missingVars = error.errors
-        .filter(e => e.message === 'Required')
-        .map(e => e.path.join('.'))
-        .join(', ')
-
-      if (missingVars.length > 0) {
-        console.error('Missing required environment variables:', missingVars)
-        throw new Error(`Missing required environment variables: ${missingVars}`)
-      }
-
-      // 检查是否缺少特定环境变量
-      const requiredVars = [
-        'DATABASE_URL',
-        'MINIO_ENDPOINT',
-        'MINIO_PORT',
-        'MINIO_ACCESS_KEY',
-        'MINIO_SECRET_KEY',
-        'MINIO_BUCKET',
-        'MINIO_USE_SSL',
-        'SESSION_SECRET',
-      ]
-
-      const missingVarInfo = []
-      for (const varName of requiredVars) {
-        if (!process.env[varName]) {
-          missingVarInfo.push(`${varName} (not set)`)
-        }
-      }
-
-      if (missingVarInfo.length > 0) {
-        throw new Error(`Missing required environment variables: ${missingVarInfo.join(', ')}`)
-      }
-
-      throw error
+    if (error instanceof ZodError) {
+      console.error('\x1b[31m%s\x1b[0m', formatEnvValidationError(error))
+      process.exit(1)
     }
+    throw error
   }
 })()
