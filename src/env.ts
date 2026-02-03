@@ -60,7 +60,7 @@ function formatEnvValidationError(error: ZodError): string {
   return lines.join('\n')
 }
 
-export const env = (() => {
+function getEnv() {
   try {
     return envSchema.parse(process.env)
   } catch (error) {
@@ -70,4 +70,14 @@ export const env = (() => {
     }
     throw error
   }
-})()
+}
+
+// Lazy evaluation to avoid running at build time
+let cachedEnv: ReturnType<typeof getEnv> | null = null
+
+export const env = () => {
+  if (!cachedEnv) {
+    cachedEnv = getEnv()
+  }
+  return cachedEnv
+}

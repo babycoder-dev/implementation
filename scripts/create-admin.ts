@@ -4,14 +4,12 @@ import { hashPassword } from '../src/lib/auth/password'
 import { eq } from 'drizzle-orm'
 
 async function createAdmin() {
-  const username = process.argv[2]
-  const password = process.argv[3]
+  // Support command line args or use defaults
+  const username = process.argv[2] || 'admin'
+  const password = process.argv[3] || 'Admin@123'
   const name = process.argv[4] || username
 
-  if (!username || !password) {
-    console.log('Usage: npx tsx scripts/create-admin.ts <username> <password> [name]')
-    process.exit(1)
-  }
+  console.log(`Creating admin user: ${username}`)
 
   try {
     const passwordHash = await hashPassword(password)

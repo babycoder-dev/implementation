@@ -1,5 +1,4 @@
 import { pgTable, uuid, text, timestamp, integer, boolean, jsonb } from 'drizzle-orm/pg-core'
-import { sql } from 'drizzle-orm'
 
 // 用户表
 export const users = pgTable('users', {

@@ -29,10 +29,10 @@ export async function uploadFile(
 }
 
 export function getFileUrl(path: string): string {
-  return `${getMinioEndpoint()}/${env.MINIO_BUCKET}/${path}`
+  return `${getMinioEndpoint()}/${env().MINIO_BUCKET}/${path}`
 }
 
 function getMinioEndpoint(): string {
-  const protocol = env.MINIO_USE_SSL ? 'https' : 'http'
-  return `${protocol}://${env.MINIO_ENDPOINT}:${env.MINIO_PORT}`
+  const protocol = env().MINIO_USE_SSL ? 'https' : 'http'
+  return `${protocol}://${env().MINIO_ENDPOINT}:${env().MINIO_PORT}`
 }

@@ -3,7 +3,7 @@ import { db } from '@/db'
 import { tasks, taskFiles, taskAssignments, quizQuestions, users } from '@/db/schema'
 import { validateRequest } from '@/lib/auth/middleware'
 import { createTaskSchema } from '@/lib/validations/task'
-import { eq, and } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { transaction, TransactionError } from '@/db/transaction'
 

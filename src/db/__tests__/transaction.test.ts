@@ -18,12 +18,12 @@ describe('Transaction Wrapper', () => {
     it('should commit when callback succeeds', async () => {
       const mockCallbackResult = { id: 'task-1', title: 'Test Task' }
       const mockTx = vi.fn().mockImplementation(async (callback) => {
-        return await callback({} as any)
+        return await callback({} as unknown)
       })
 
       vi.mocked(db.transaction).mockImplementation(mockTx)
 
-      const result = await transaction(async (tx) => {
+      const result = await transaction(async () => {
         return mockCallbackResult
       })
 
@@ -33,7 +33,7 @@ describe('Transaction Wrapper', () => {
 
     it('should rollback when callback throws error', async () => {
       const mockError = new Error('Database error')
-      const mockTx = vi.fn().mockImplementation(async (callback) => {
+      const mockTx = vi.fn().mockImplementation(async () => {
         throw mockError
       })
 
@@ -48,7 +48,7 @@ describe('Transaction Wrapper', () => {
 
     it('should wrap errors in TransactionError', async () => {
       const originalError = new Error('Constraint violation')
-      const mockTx = vi.fn().mockImplementation(async (callback) => {
+      const mockTx = vi.fn().mockImplementation(async () => {
         throw originalError
       })
 
@@ -75,7 +75,7 @@ describe('Transaction Wrapper', () => {
     it('should propagate return value from callback', async () => {
       const expectedValue = { taskId: 'task-123', status: 'created' }
       const mockTx = vi.fn().mockImplementation(async (callback) => {
-        return await callback({} as any)
+        return await callback({} as unknown)
       })
 
       vi.mocked(db.transaction).mockImplementation(mockTx)
@@ -90,12 +90,12 @@ describe('Transaction Wrapper', () => {
     it('should handle multiple operations in single transaction', async () => {
       const operations: string[] = []
       const mockTx = vi.fn().mockImplementation(async (callback) => {
-        return await callback({} as any)
+        return await callback({} as unknown)
       })
 
       vi.mocked(db.transaction).mockImplementation(mockTx)
 
-      const result = await transaction(async (tx) => {
+      const result = await transaction(async () => {
         operations.push('first')
         operations.push('second')
         operations.push('third')
@@ -110,12 +110,12 @@ describe('Transaction Wrapper', () => {
     it('should pass transaction object to callback', async () => {
       const mockTxObj = { id: 'mock-tx-123' }
       const mockTx = vi.fn().mockImplementation(async (callback) => {
-        return await callback(mockTxObj as any)
+        return await callback(mockTxObj as unknown)
       })
 
       vi.mocked(db.transaction).mockImplementation(mockTx)
 
-      const receivedTx: any[] = []
+      const receivedTx: unknown[] = []
 
       await transaction(async (tx) => {
         receivedTx.push(tx)
@@ -128,7 +128,7 @@ describe('Transaction Wrapper', () => {
 
     it('should handle non-Error exceptions', async () => {
       const nonErrorValue = 'string error'
-      const mockTx = vi.fn().mockImplementation(async (callback) => {
+      const mockTx = vi.fn().mockImplementation(async () => {
         throw nonErrorValue
       })
 

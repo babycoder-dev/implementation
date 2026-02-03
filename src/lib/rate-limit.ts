@@ -35,11 +35,11 @@ function cleanupExpiredEntries(): void {
   const now = Date.now()
   const keysToDelete: string[] = []
 
-  for (const [key, entry] of rateLimitStore.entries()) {
+  rateLimitStore.forEach((entry, key) => {
     if (entry.windowStart + windowMsFromKey(key) < now) {
       keysToDelete.push(key)
     }
-  }
+  })
 
   keysToDelete.forEach((key) => rateLimitStore.delete(key))
 }

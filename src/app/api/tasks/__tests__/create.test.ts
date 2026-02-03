@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { POST } from '../route'
 import { db } from '@/db'
-import { users, tasks, taskAssignments, taskFiles, quizQuestions } from '@/db/schema'
+import type { NextRequest } from 'next/server'
 
 // Mock database
 vi.mock('@/db', () => ({
@@ -52,15 +52,15 @@ describe('POST /api/tasks', () => {
 
     vi.mocked(db.select).mockReturnValue({
       from: mockUserFrom,
-    } as any)
+    } as unknown)
 
     mockUserFrom.mockReturnValue({
       where: mockUserWhere,
-    } as any)
+    } as unknown)
 
     mockUserWhere.mockReturnValue({
       limit: mockUserLimit,
-    } as any)
+    } as unknown)
 
     // Mock transaction
     const mockTxInsertValues = vi.fn().mockReturnThis()
@@ -71,12 +71,12 @@ describe('POST /api/tasks', () => {
         insert: vi.fn().mockReturnValue({
           values: mockTxInsertValues,
         }),
-      } as any)
+      } as unknown)
     })
 
     mockTxInsertValues.mockReturnValue({
       returning: mockTxInsertReturning,
-    } as any)
+    } as unknown)
 
     vi.mocked(db.transaction).mockImplementation(mockTransaction)
 
@@ -97,9 +97,9 @@ describe('POST /api/tasks', () => {
           },
         ],
       }),
-    })
+    }) as unknown as NextRequest
 
-    const response = await POST(request as any)
+    const response = await POST(request)
     const data = await response.json()
 
     expect(response.status).toBe(201)
@@ -128,15 +128,15 @@ describe('POST /api/tasks', () => {
 
     vi.mocked(db.select).mockReturnValue({
       from: mockUserFrom,
-    } as any)
+    } as unknown)
 
     mockUserFrom.mockReturnValue({
       where: mockUserWhere,
-    } as any)
+    } as unknown)
 
     mockUserWhere.mockReturnValue({
       limit: mockUserLimit,
-    } as any)
+    } as unknown)
 
     const request = new Request('http://localhost:3000/api/tasks', {
       method: 'POST',
@@ -146,9 +146,9 @@ describe('POST /api/tasks', () => {
         assignedUserIds: ['user-1'],
         files: [{ title: 'Test', fileType: 'pdf', fileUrl: 'https://example.com/file.pdf', fileSize: 1024 }],
       }),
-    })
+    }) as unknown as NextRequest
 
-    const response = await POST(request as any)
+    const response = await POST(request)
     const data = await response.json()
 
     expect(response.status).toBe(403)
@@ -167,9 +167,9 @@ describe('POST /api/tasks', () => {
         assignedUserIds: ['user-1'],
         files: [{ title: 'Test', fileType: 'pdf', fileUrl: 'https://example.com/file.pdf', fileSize: 1024 }],
       }),
-    })
+    }) as unknown as NextRequest
 
-    const response = await POST(request as any)
+    const response = await POST(request)
     const data = await response.json()
 
     expect(response.status).toBe(401)
@@ -195,15 +195,15 @@ describe('POST /api/tasks', () => {
 
     vi.mocked(db.select).mockReturnValue({
       from: mockUserFrom,
-    } as any)
+    } as unknown)
 
     mockUserFrom.mockReturnValue({
       where: mockUserWhere,
-    } as any)
+    } as unknown)
 
     mockUserWhere.mockReturnValue({
       limit: mockUserLimit,
-    } as any)
+    } as unknown)
 
     const request = new Request('http://localhost:3000/api/tasks', {
       method: 'POST',
@@ -213,9 +213,9 @@ describe('POST /api/tasks', () => {
         title: '',
         files: [],
       }),
-    })
+    }) as unknown as NextRequest
 
-    const response = await POST(request as any)
+    const response = await POST(request)
     const data = await response.json()
 
     expect(response.status).toBe(400)
@@ -250,15 +250,15 @@ describe('POST /api/tasks', () => {
 
     vi.mocked(db.select).mockReturnValue({
       from: mockUserFrom,
-    } as any)
+    } as unknown)
 
     mockUserFrom.mockReturnValue({
       where: mockUserWhere,
-    } as any)
+    } as unknown)
 
     mockUserWhere.mockReturnValue({
       limit: mockUserLimit,
-    } as any)
+    } as unknown)
 
     // Mock transaction
     const mockTxInsertValues = vi.fn().mockReturnThis()
@@ -269,12 +269,12 @@ describe('POST /api/tasks', () => {
         insert: vi.fn().mockReturnValue({
           values: mockTxInsertValues,
         }),
-      } as any)
+      } as unknown)
     })
 
     mockTxInsertValues.mockReturnValue({
       returning: mockTxInsertReturning,
-    } as any)
+    } as unknown)
 
     vi.mocked(db.transaction).mockImplementation(mockTransaction)
 
@@ -293,9 +293,9 @@ describe('POST /api/tasks', () => {
           },
         ],
       }),
-    })
+    }) as unknown as NextRequest
 
-    const response = await POST(request as any)
+    const response = await POST(request)
     const data = await response.json()
 
     expect(response.status).toBe(201)

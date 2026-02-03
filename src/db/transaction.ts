@@ -2,6 +2,7 @@ import { db } from './index'
 
 /**
  * Transaction error wrapper for better error handling
+ * eslint-disable-next-line @typescript-eslint/no-explicit-any
  */
 export class TransactionError extends Error {
   public readonly cause?: Error
@@ -20,6 +21,7 @@ export class TransactionError extends Error {
 
 /**
  * Transaction callback function type
+ * eslint-disable-next-line @typescript-eslint/no-explicit-any
  */
 export type TransactionCallback<T> = (tx: any) => Promise<T>
 

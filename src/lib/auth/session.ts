@@ -1,12 +1,12 @@
 import { SignJWT, jwtVerify } from 'jose'
 import { env } from '@/env'
 
-const SESSION_SECRET = new TextEncoder().encode(env.SESSION_SECRET)
-const SESSION_DURATION = 7 * 24 * 60 * 60 * 1000 // 7 days
+const SESSION_SECRET = new TextEncoder().encode(env().SESSION_SECRET)
 
 export interface SessionPayload {
   userId: string
   createdAt: number
+  [key: string]: unknown // Index signature for Jose library compatibility
 }
 
 export async function createSession(userId: string): Promise<string> {
@@ -32,7 +32,7 @@ export async function validateSession(token: string): Promise<SessionPayload | n
   }
 }
 
-export function destroySession(token: string): boolean {
+export function destroySession(): boolean {
   // For JWT, the server is stateless
   // The client needs to delete the cookie
   // Here we return true to indicate the operation succeeded

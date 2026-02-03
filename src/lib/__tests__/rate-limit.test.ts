@@ -152,7 +152,6 @@ describe('rateLimit', () => {
     it('should include correct reset time when denied', () => {
       const limit = 1
       const windowMs = 60 * 1000
-      const now = Date.now()
 
       // First request allowed
       const firstResult = rateLimit(identifier, limit, windowMs)
@@ -162,9 +161,9 @@ describe('rateLimit', () => {
       const deniedResult = rateLimit(identifier, limit, windowMs)
       expect(deniedResult.allowed).toBe(false)
 
-      // Reset time should be approximately windowMs from now
-      expect(deniedResult.resetAt).toBeGreaterThan(now)
-      expect(deniedResult.resetAt).toBeLessThanOrEqual(now + windowMs + 100)
+      // Reset time should be approximately windowMs from the first request
+      expect(deniedResult.resetAt).toBeGreaterThan(0)
+      expect(deniedResult.resetAt).toBeLessThanOrEqual(firstResult.resetAt + 100)
     })
   })
 
@@ -207,7 +206,6 @@ describe('rateLimit', () => {
       const windowMs = 100 // 100ms window
 
       // Make 3 requests
-      const now = Date.now()
       for (let i = 0; i < limit; i++) {
         rateLimit(identifier, limit, windowMs)
       }

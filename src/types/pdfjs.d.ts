@@ -93,5 +93,18 @@ declare module 'pdfjs-dist' {
     workerPort?: any
   }
 
-  export function getDocument(parameters: GetDocumentParameters): Promise<PDFDocumentProxy>
+  export interface DocumentInitParameters {
+    url?: string
+    data?: ArrayBuffer | Uint8Array
+    httpHeaders?: Record<string, string>
+    withCredentials?: boolean
+    password?: string
+    workerPort?: any
+  }
+
+  export interface PDFDocumentLoadingTask {
+    promise: Promise<PDFDocumentProxy>
+  }
+
+  export function getDocument(parameters: string | GetDocumentParameters): PDFDocumentLoadingTask
 }

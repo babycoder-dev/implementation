@@ -4,10 +4,10 @@ import { validateRequest } from '@/lib/auth/middleware'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 
 const s3Client = new S3Client({
-  endpoint: `${env.MINIO_USE_SSL ? 'https' : 'http'}://${env.MINIO_ENDPOINT}:${env.MINIO_PORT}`,
+  endpoint: `${env().MINIO_USE_SSL ? 'https' : 'http'}://${env().MINIO_ENDPOINT}:${env().MINIO_PORT}`,
   credentials: {
-    accessKeyId: env.MINIO_ACCESS_KEY,
-    secretAccessKey: env.MINIO_SECRET_KEY,
+    accessKeyId: env().MINIO_ACCESS_KEY,
+    secretAccessKey: env().MINIO_SECRET_KEY,
   },
   region: 'us-east-1',
   forcePathStyle: true,
@@ -34,14 +34,14 @@ export async function POST(request: NextRequest) {
 
     await s3Client.send(
       new PutObjectCommand({
-        Bucket: env.MINIO_BUCKET,
+        Bucket: env().MINIO_BUCKET,
         Key: path,
         Body: buffer,
         ContentType: file.type,
       })
     )
 
-    const url = `${env.MINIO_USE_SSL ? 'https' : 'http'}://${env.MINIO_ENDPOINT}:${env.MINIO_PORT}/${env.MINIO_BUCKET}/${path}`
+    const url = `${env().MINIO_USE_SSL ? 'https' : 'http'}://${env().MINIO_ENDPOINT}:${env().MINIO_PORT}/${env().MINIO_BUCKET}/${path}`
 
     return NextResponse.json({
       success: true,
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       size: file.size,
       path,
     })
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: '上传失败' },
       { status: 500 }
