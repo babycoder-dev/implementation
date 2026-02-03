@@ -1,13 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { uploadFile, getFileUrl } from '../minio'
 
-// Mock fetch at module level
-const mockFetch = vi.fn()
-vi.stubGlobal('fetch', mockFetch)
-
-// Mock fetch globally
-global.fetch = vi.fn()
-
 describe('MinIO Storage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -22,7 +15,7 @@ describe('MinIO Storage', () => {
         path: 'tasks/task-1/file-1.pdf',
       }
 
-      vi.mocked(fetch).mockResolvedValue({
+      global.fetch = vi.fn().mockResolvedValueOnce({
         ok: true,
         json: async () => mockResponse,
       } as Response)
