@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation'
+import UserList from './UserList'
 
 export default function AdminUsersPage() {
-  redirect('/admin')
+  return <UserList />
 }
