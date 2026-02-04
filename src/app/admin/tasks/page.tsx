@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation'
+import TaskList from './TaskList'
 
 export default function AdminTasksPage() {
-  redirect('/admin')
+  return <TaskList />
 }
