@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react'
 import TaskEditor from '../TaskEditor'
 
 // Mock task data
@@ -70,7 +70,9 @@ describe('TaskEditor - Enhanced Features', () => {
       render(<TaskEditor taskId="task-123" />)
 
       // Wait for async data to load
-      await new Promise(resolve => setTimeout(resolve, 10))
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 50))
+      })
 
       expect(screen.getByRole('button', { name: '基本信息' })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: '附件管理' })).toBeInTheDocument()
@@ -81,7 +83,9 @@ describe('TaskEditor - Enhanced Features', () => {
     it('displays header with title', async () => {
       render(<TaskEditor taskId="task-123" />)
 
-      await new Promise(resolve => setTimeout(resolve, 10))
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 50))
+      })
 
       expect(screen.getByText('编辑任务')).toBeInTheDocument()
     })
@@ -89,12 +93,15 @@ describe('TaskEditor - Enhanced Features', () => {
     it('switches to files tab when clicked', async () => {
       render(<TaskEditor taskId="task-123" />)
 
-      await new Promise(resolve => setTimeout(resolve, 10))
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 50))
+      })
 
       const filesTab = screen.getByRole('button', { name: '附件管理' })
       fireEvent.click(filesTab)
 
-      expect(screen.getByRole('button', { name: '选择文件' })).toBeInTheDocument()
+      // "选择文件" is a label element, not a button
+      expect(screen.getByText('选择文件')).toBeInTheDocument()
     })
 
     it('switches to users tab when clicked', async () => {
@@ -122,12 +129,15 @@ describe('TaskEditor - Enhanced Features', () => {
     it('displays file upload section with upload button', async () => {
       render(<TaskEditor taskId="task-123" />)
 
-      await new Promise(resolve => setTimeout(resolve, 10))
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 50))
+      })
 
       const filesTab = screen.getByRole('button', { name: '附件管理' })
       fireEvent.click(filesTab)
 
-      expect(screen.getByRole('button', { name: '选择文件' })).toBeInTheDocument()
+      // "选择文件" is a label element, not a button
+      expect(screen.getByText('选择文件')).toBeInTheDocument()
     })
 
     it('displays user assignment section with add button', async () => {
