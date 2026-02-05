@@ -1,5 +1,10 @@
+import { AdminLayout } from '@/components/layout/AdminLayout'
 import TaskList from './TaskList'
 
 export default function AdminTasksPage() {
-  return <TaskList />
+  return (
+    <AdminLayout>
+      <TaskList />
+    </AdminLayout>
+  )
 }

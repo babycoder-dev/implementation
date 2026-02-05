@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus, Edit } from 'lucide-react'
+import { Edit } from 'lucide-react'
 import Link from 'next/link'
 
 interface Task {
@@ -46,12 +46,6 @@ export default function TaskList() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">任务管理</h1>
-        <Link href="/admin/tasks/create">
-          <Button><Plus className="w-4 h-4 mr-2" />创建任务</Button>
-        </Link>
-      </div>
       <div className="grid gap-4">
         {tasks.map(task => (
           <Card key={task.id}>
