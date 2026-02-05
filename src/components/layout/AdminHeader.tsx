@@ -8,11 +8,17 @@ export function AdminHeader() {
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/auth/logout', { method: 'POST' })
+      const res = await fetch('/api/auth/logout', { method: 'POST' })
+
+      if (!res.ok) {
+        throw new Error('退出请求失败')
+      }
+
       router.push('/login')
       router.refresh()
-    } catch {
-      console.error('退出失败')
+    } catch (error) {
+      console.error('退出失败:', error)
+      alert('退出失败，请稍后重试')
     }
   }
 

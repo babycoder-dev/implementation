@@ -33,6 +33,7 @@ export function PDFViewer({ url, onPageChange, onFinish }: PDFViewerProps) {
     }
 
     loadPDF()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url])
 
   const renderPage = async (num: number) => {

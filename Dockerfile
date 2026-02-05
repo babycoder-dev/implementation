@@ -6,17 +6,16 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production && \
-    npm cache clean --force
+# Install all dependencies
+RUN npm ci
 
 # Copy source code
 COPY . .
 
-# Generate Prisma/Drizzle client if needed
-RUN npm run db:generate || true
+# Copy tsconfig.json for path resolution
+COPY tsconfig.json ./
 
-# Build the application
+# Build application (will use env vars at runtime, not build time)
 RUN npm run build
 
 # Production stage
@@ -29,21 +28,19 @@ ENV NODE_ENV=production
 # Copy package files
 COPY package*.json ./
 
-# Install production dependencies only
-RUN npm ci --only=production && \
-    npm cache clean --force
+# Install all dependencies (drizzle-kit is a dev dependency needed for migrations)
+RUN npm ci
 
 # Copy built application from builder
 COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma || true
-COPY --from=builder /app/drizzle ./drizzle || true
-COPY --from=builder /app/tsconfig.json ./tsconfig.json
-COPY --from=builder /app/next.config.mjs ./next.config.mjs
 COPY --from=builder /app/src ./src
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
+COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
+COPY --from=builder /app/scripts ./scripts
+COPY --from=builder /app/node_modules ./node_modules
 
 # Expose port
 EXPOSE 3000
 
-# Run the application
+# Run application from project root (scripts/ is accessible)
 CMD ["npm", "start"]

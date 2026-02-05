@@ -38,7 +38,7 @@ export async function POST(
     }
 
     // Check if user is admin or task owner
-    const isAdmin = auth.role === 'admin'
+    const isAdmin = (auth as any).role === 'admin'
     const isOwner = task.createdBy === auth.userId
 
     if (!isAdmin && !isOwner) {

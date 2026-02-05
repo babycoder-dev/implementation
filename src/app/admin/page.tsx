@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, use } from 'react'
 import Link from 'next/link'
 import { AdminLayout } from '@/components/layout/AdminLayout'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -110,8 +110,10 @@ export default function AdminPage() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [currentDate, setCurrentDate] = useState('')
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
     // Set current date
     const now = new Date()
     const weekDays = ['日', '一', '二', '三', '四', '五', '六']
@@ -131,6 +133,26 @@ export default function AdminPage() {
       })
       .finally(() => setLoading(false))
   }, [])
+
+  // Avoid hydration mismatch
+  if (!mounted) {
+    return (
+      <AdminLayout>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900">管理后台</h1>
+              <p className="text-slate-500 mt-1">数据概览</p>
+            </div>
+          </div>
+          <div className="animate-pulse">
+            <div className="h-32 bg-slate-200 rounded-lg mb-6"></div>
+            <div className="h-64 bg-slate-200 rounded-lg"></div>
+          </div>
+        </div>
+      </AdminLayout>
+    )
+  }
 
   // Calculate completion rate
   const completionRate = data && data.answerTotal > 0

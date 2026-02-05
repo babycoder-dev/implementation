@@ -14,9 +14,10 @@ export async function POST(request: NextRequest) {
     })
 
     return response
-  } catch {
+  } catch (error) {
+    console.error('Logout error:', error)
     return NextResponse.json(
-      { success: false, error: '退出失败' },
+      { success: false, error: '退出失败，请稍后重试' },
       { status: 500 }
     )
   }

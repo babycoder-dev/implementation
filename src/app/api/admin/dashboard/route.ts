@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/db'
 import { tasks, taskAssignments, users, quizAnswers } from '@/db/schema'
 import { validateRequest } from '@/lib/auth/middleware'
-import { count, eq, sql } from 'drizzle-orm'
+import { count, eq, sql, desc } from 'drizzle-orm'
 
 export async function GET(request: NextRequest) {
   const auth = await validateRequest(request)
@@ -39,6 +39,30 @@ export async function GET(request: NextRequest) {
       })
       .from(quizAnswers)
 
+    // 最新任务
+    const recentTasksResult = await db
+      .select({
+        id: tasks.id,
+        title: tasks.title,
+        createdAt: tasks.createdAt,
+        status: sql<'active' | 'completed' | 'draft'>`'active'`.as('status'),
+      })
+      .from(tasks)
+      .orderBy(desc(tasks.createdAt))
+      .limit(5)
+
+    // 最新用户
+    const recentUsersResult = await db
+      .select({
+        id: users.id,
+        username: users.username,
+        createdAt: users.createdAt,
+        role: users.role,
+      })
+      .from(users)
+      .orderBy(desc(users.createdAt))
+      .limit(5)
+
     return NextResponse.json({
       success: true,
       data: {
@@ -47,9 +71,17 @@ export async function GET(request: NextRequest) {
         assignmentCount: assignmentCount.count,
         answerTotal: answerStats[0]?.total || 0,
         answerCorrect: answerStats[0]?.correct || 0,
+        recentTasks: recentTasksResult,
+        recentUsers: recentUsersResult,
+        trend: {
+          users: '+0%',
+          tasks: '+0%',
+          assignments: '+0%',
+          completionRate: '+0%',
+        },
       },
     })
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false, error: '获取数据失败' },
       { status: 500 }

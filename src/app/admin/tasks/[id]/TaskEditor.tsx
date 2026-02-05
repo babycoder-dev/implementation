@@ -397,19 +397,17 @@ export default function TaskEditor({ taskId }: { taskId: string }) {
           <CardContent className="space-y-4">
             {/* Upload Area */}
             <div className="flex items-center gap-4">
-              <label className="cursor-pointer">
+              <label className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-50 disabled:pointer-events-none border border-gray-300 bg-white hover:bg-gray-50 h-10 px-4 py-2">
                 <input
                   type="file"
                   onChange={handleFileSelect}
                   className="hidden"
                   accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.png,.jpg,.jpeg,.gif"
                 />
-                <Button variant="outline" asChild>
-                  <span>
-                    <Upload className="w-4 h-4 mr-2" />
-                    选择文件
-                  </span>
-                </Button>
+                <span>
+                  <Upload className="w-4 h-4 mr-2 inline" />
+                  选择文件
+                </span>
               </label>
               {selectedFile && (
                 <span className="text-sm text-gray-600">

@@ -21,10 +21,11 @@ describe('POST /api/auth/logout', () => {
     expect(data.success).toBe(true)
   })
 
-  it('应该在 cookie 中设置已过期的 session-token', async () => {
+  it('应该在 cookie 中设置 httpOnly 和已过期的 session-token', async () => {
     const response = await POST(mockRequest)
-    const setCookie = response.headers.get('set-cookie')
+    const setCookie = response.headers.get('set-cookie') || ''
     expect(setCookie).toContain('session-token=')
     expect(setCookie).toContain('Max-Age=0')
+    expect(setCookie).toContain('HttpOnly')
   })
 })
