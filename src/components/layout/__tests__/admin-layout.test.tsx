@@ -7,6 +7,10 @@ import * as nextNavigation from 'next/navigation'
 
 vi.mock('next/navigation', () => ({
   usePathname: vi.fn(),
+  useRouter: vi.fn(() => ({
+    push: vi.fn(),
+    refresh: vi.fn(),
+  })),
 }))
 
 describe('Admin Layout', () => {
