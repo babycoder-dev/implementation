@@ -1,8 +1,21 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { LogOut, User } from 'lucide-react'
 
 export function AdminHeader() {
+  const router = useRouter()
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' })
+      router.push('/login')
+      router.refresh()
+    } catch {
+      console.error('退出失败')
+    }
+  }
+
   return (
     <header className="fixed top-0 right-0 z-40 h-16 w-[calc(100%-16rem)] bg-white border-b border-gray-200">
       <div className="flex h-full items-center justify-between px-6">
@@ -19,7 +32,10 @@ export function AdminHeader() {
             </div>
             <span className="text-sm font-medium text-slate-700">admin</span>
           </button>
-          <button className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors">
+          <button
+            onClick={handleLogout}
+            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-md transition-colors"
+          >
             <LogOut className="w-5 h-5" />
           </button>
         </div>
