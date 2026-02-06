@@ -26,7 +26,7 @@ describe('CreateTaskPage', () => {
 
   it('renders page with title', () => {
     render(<CreateTaskPage />)
-    expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent('创建任务')
+    expect(screen.getByRole('heading', { level: 1, name: '创建任务' })).toBeInTheDocument()
   })
 
   it('renders all form fields', () => {

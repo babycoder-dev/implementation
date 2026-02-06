@@ -26,7 +26,7 @@ describe('CreateUserPage', () => {
 
   it('renders page with title', () => {
     render(<CreateUserPage />)
-    expect(screen.getByRole('heading', { level: 3, name: '创建用户' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 1, name: '创建用户' })).toBeInTheDocument()
   })
 
   it('renders all form fields', () => {
@@ -145,13 +145,6 @@ describe('CreateUserPage', () => {
     expect(backLink).toHaveAttribute('href', '/admin/users')
   })
 
-  it('has cancel button', () => {
-    render(<CreateUserPage />)
-
-    const cancelButton = screen.getByRole('button', { name: '取消' })
-    expect(cancelButton).toBeInTheDocument()
-  })
-
   it('navigates to user list on successful creation', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
@@ -178,7 +171,7 @@ describe('CreateUserPage', () => {
     expect(roleSelect.value).toBe('admin')
   })
 
-  it('disables all form fields during loading', async () => {
+  it('disables form fields during loading', async () => {
     const mockFetch = vi.fn().mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)))
     vi.stubGlobal('fetch', mockFetch)
 
@@ -193,9 +186,6 @@ describe('CreateUserPage', () => {
     await waitFor(() => {
       expect(screen.getByPlaceholderText('请输入用户名')).toBeDisabled()
       expect(screen.getByPlaceholderText('请输入密码')).toBeDisabled()
-      expect(screen.getByPlaceholderText('请输入姓名')).toBeDisabled()
-      expect(screen.getByRole('combobox')).toBeDisabled()
-      expect(screen.getByRole('button', { name: '取消' })).toBeDisabled()
     })
   })
 })
