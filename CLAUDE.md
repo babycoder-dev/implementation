@@ -129,3 +129,53 @@ SESSION_SECRET       # JWT signing secret (min 32 chars recommended)
 - No `console.log` statements in production code
 - All async operations use try-catch with proper error handling
 - Database operations in transactions should use atomic callbacks
+
+## UI Design Guidelines
+
+**CRITICAL**: All admin pages MUST follow the design system defined in `docs/design-system.md`.
+
+### Use Page Template Components
+
+Use reusable templates from `src/components/layout/AdminPageTemplate.tsx`:
+
+```tsx
+import { FormPage, ListPage, PageHeader, ContentSection } from '@/components/layout/AdminPageTemplate'
+
+// For form pages
+export default function CreateUserPage() {
+  return (
+    <FormPage
+      title="创建用户"
+      showBack
+      backHref="/admin/users"
+      backText="返回用户列表"
+    >
+      {/* form content */}
+    </FormPage>
+  )
+}
+
+// For list pages
+export default function UserListPage() {
+  return (
+    <ListPage
+      title="用户管理"
+      action={<Button><Plus />添加用户</Button>}
+    >
+      {/* list content */}
+    </ListPage>
+  )
+}
+
+// For content sections
+<ContentSection title="基本信息" action={<Button>操作</Button>}>
+  {/* section content */}
+</ContentSection>
+```
+
+### Before Creating Pages
+
+1. Check `docs/design-design.md` for component patterns
+2. Reuse template components from `src/components/layout/AdminPageTemplate.tsx`
+3. Follow the page structure shown above
+4. Do NOT create custom layouts that differ from AdminLayout

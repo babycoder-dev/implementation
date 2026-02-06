@@ -1,4 +1,4 @@
-import { SignJWT, jwtVerify, createRemoteJWKSet } from 'jose'
+import { SignJWT, jwtVerify } from 'jose'
 import { env } from '@/env'
 
 // Lazy encode secret to ensure env is loaded

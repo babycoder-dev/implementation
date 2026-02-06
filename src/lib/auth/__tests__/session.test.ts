@@ -7,7 +7,7 @@ import { destroySession } from '../session'
 // Skip all tests in jsdom - jose library requires native Web Crypto
 const describeSession = describe
 
-// @ts-ignore - intentionally skipped in jsdom
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const itSession = it.each([['createSession'], ['validateSession']])
 
 describeSession('Session (skipped in jsdom - requires native Web Crypto)', () => {
