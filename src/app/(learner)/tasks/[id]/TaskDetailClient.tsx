@@ -2,7 +2,8 @@
 
 import { useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
-import { PDFViewer } from '@/components/pdf-viewer'
+import { PDFViewer } from '@/components/PDFViewer'
+import { VideoPlayer } from '@/components/VideoPlayer'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -41,115 +42,6 @@ interface TaskDetailClientProps {
 }
 
 type TabType = 'files' | 'videos' | 'quiz'
-
-interface VideoPlayerProps {
-  file: TaskFile
-  onProgressUpdate: (fileId: string, currentTime: number, duration: number) => void
-  onActionLog: (fileId: string, action: 'play' | 'pause' | 'seek' | 'finish', currentTime: number) => void
-}
-
-function VideoPlayer({ file, onProgressUpdate, onActionLog }: VideoPlayerProps) {
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [currentTime, setCurrentTime] = useState(0)
-  const [duration, setDuration] = useState(0)
-  const videoRef = useRef<HTMLVideoElement>(null)
-
-  const handleTimeUpdate = useCallback((e: React.SyntheticEvent<HTMLVideoElement>) => {
-    const video = e.currentTarget
-    setCurrentTime(video.currentTime)
-    setDuration(video.duration)
-
-    if (Math.floor(video.currentTime) % 5 === 0) {
-      onProgressUpdate(file.id, Math.floor(video.currentTime), Math.floor(video.duration))
-    }
-  }, [file.id, onProgressUpdate])
-
-  const handlePlay = useCallback(() => {
-    setIsPlaying(true)
-    onActionLog(file.id, 'play', Math.floor(currentTime))
-  }, [file.id, currentTime, onActionLog])
-
-  const handlePause = useCallback(() => {
-    setIsPlaying(false)
-    onActionLog(file.id, 'pause', Math.floor(currentTime))
-  }, [file.id, currentTime, onActionLog])
-
-  const handleSeeked = useCallback((e: React.SyntheticEvent<HTMLVideoElement>) => {
-    const time = Math.floor(e.currentTarget.currentTime)
-    setCurrentTime(time)
-    onActionLog(file.id, 'seek', time)
-  }, [file.id, onActionLog])
-
-  const handleEnded = useCallback(() => {
-    setIsPlaying(false)
-    onActionLog(file.id, 'finish', Math.floor(duration))
-  }, [file.id, duration, onActionLog])
-
-  const formatTime = (seconds: number): string => {
-    if (!seconds || isNaN(seconds)) return '0:00'
-    const mins = Math.floor(seconds / 60)
-    const secs = Math.floor(seconds % 60)
-    return `${mins}:${secs.toString().padStart(2, '0')}`
-  }
-
-  return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
-          <Video className="h-4 w-4" />
-          {file.title}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
-          <div className="relative bg-slate-900 rounded-lg overflow-hidden">
-            <video
-              ref={videoRef}
-              src={file.fileUrl}
-              className="w-full aspect-video"
-              onTimeUpdate={handleTimeUpdate}
-              onPlay={handlePlay}
-              onPause={handlePause}
-              onSeeked={handleSeeked}
-              onEnded={handleEnded}
-              controls
-            />
-          </div>
-
-          <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-2">
-              {isPlaying ? (
-                <Play className="h-4 w-4 text-green-500" />
-              ) : (
-                <Pause className="h-4 w-4 text-slate-500" />
-              )}
-              <span className="text-slate-600">
-                {formatTime(currentTime)} / {formatTime(duration)}
-              </span>
-            </div>
-            <Badge variant={isPlaying ? 'default' : 'secondary'}>
-              {isPlaying ? '播放中' : '已暂停'}
-            </Badge>
-          </div>
-
-          <Progress
-            value={duration > 0 ? (currentTime / duration) * 100 : 0}
-            className="h-2"
-          />
-
-          <a
-            href={file.fileUrl}
-            download
-            className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700"
-          >
-            <Download className="h-4 w-4" />
-            下载视频
-          </a>
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
 
 interface QuizSectionProps {
   questions: QuizQuestion[]
@@ -298,9 +190,10 @@ interface FileViewerProps {
   file: TaskFile
   onPageChange: (fileId: string, pageNum: number, totalPages: number) => void
   onFinish: (fileId: string) => void
+  onTimeUpdate?: (fileId: string, duration: number) => void
 }
 
-function FileViewer({ file, onPageChange, onFinish }: FileViewerProps) {
+function FileViewer({ file, onPageChange, onFinish, onTimeUpdate }: FileViewerProps) {
   const isPdf = file.fileType.toLowerCase() === 'pdf'
 
   if (!isPdf) {
@@ -352,8 +245,10 @@ function FileViewer({ file, onPageChange, onFinish }: FileViewerProps) {
           </div>
           <PDFViewer
             url={file.fileUrl}
-            onPageChange={(pageNum, totalPages) => onPageChange(file.id, pageNum, totalPages)}
-            onFinish={() => onFinish(file.id)}
+            fileId={file.id}
+            onPageChange={(id, pageNum, totalPages) => onPageChange(id, pageNum, totalPages)}
+            onFinish={(id) => onFinish(id)}
+            onTimeUpdate={onTimeUpdate}
           />
         </div>
       </CardContent>
@@ -402,6 +297,24 @@ export default function TaskDetailClient({ task, files, questions }: TaskDetailC
     }
   }, [])
 
+  // Record PDF study time
+  const handlePdfTimeUpdate = useCallback(async (fileId: string, duration: number) => {
+    try {
+      await fetch('/api/learning/log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileId,
+          actionType: 'time',
+          duration,
+          pageNum: 1,
+        }),
+      })
+    } catch {
+      // Silently fail
+    }
+  }, [])
+
   // Update video progress
   const handleVideoProgressUpdate = useCallback(async (fileId: string, currentTime: number, duration: number) => {
     try {
@@ -419,22 +332,31 @@ export default function TaskDetailClient({ task, files, questions }: TaskDetailC
     }
   }, [])
 
-  // Log video actions
-  const handleVideoActionLog = useCallback(async (fileId: string, action: 'play' | 'pause' | 'seek' | 'finish', currentTime: number) => {
-    try {
-      await fetch('/api/learning/video/log', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fileId,
-          action,
-          currentTime,
-        }),
-      })
-    } catch {
-      // Silently fail
-    }
-  }, [])
+  // Log video actions (supports extended actions for anomaly detection)
+  const handleVideoActionLog = useCallback(
+    async (
+      fileId: string,
+      action: 'play' | 'pause' | 'seek' | 'finish' | 'muted' | 'speed_changed',
+      currentTime: number,
+      metadata?: Record<string, unknown>
+    ) => {
+      try {
+        await fetch('/api/learning/video/log', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fileId,
+            action,
+            currentTime,
+            ...metadata,
+          }),
+        })
+      } catch {
+        // Silently fail
+      }
+    },
+    []
+  )
 
   const tabs: { id: TabType; label: string; count: number }[] = [
     { id: 'files', label: '学习资料', count: pdfFiles.length },
@@ -508,6 +430,7 @@ export default function TaskDetailClient({ task, files, questions }: TaskDetailC
                     file={file}
                     onPageChange={handlePdfPageChange}
                     onFinish={handlePdfFinish}
+                    onTimeUpdate={handlePdfTimeUpdate}
                   />
                 ))
             )}

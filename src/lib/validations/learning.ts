@@ -2,13 +2,14 @@ import { z } from 'zod'
 
 export const logLearningActionSchema = z.object({
   fileId: z.string().uuid(),
-  actionType: z.enum(['open', 'next_page', 'finish']),
+  actionType: z.enum(['open', 'next_page', 'finish', 'time']),
   pageNum: z.number().int().min(1),
+  duration: z.number().int().min(0).optional(),
 })
 
 export const logVideoActionSchema = z.object({
   fileId: z.string().uuid(),
-  action: z.enum(['play', 'pause', 'seek', 'finish']),
+  action: z.enum(['play', 'pause', 'seek', 'finish', 'muted', 'speed_changed']),
   currentTime: z.number().int().min(0),
 })
 

@@ -1,10 +1,5 @@
-import { AdminLayout } from '@/components/layout/AdminLayout'
-import TaskEditor from './TaskEditor'
+import TaskDetail from './TaskDetail'
 
-export default function TaskEditorPage({ params }: { params: { id: string } }) {
-  return (
-    <AdminLayout>
-      <TaskEditor taskId={params.id} />
-    </AdminLayout>
-  )
+export default function TaskDetailPage({ params }: { params: { id: string } }) {
+  return <TaskDetail taskId={params.id} />
 }

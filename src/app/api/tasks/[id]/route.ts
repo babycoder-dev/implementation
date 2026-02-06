@@ -92,6 +92,33 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       .from(quizQuestions)
       .where(eq(quizQuestions.taskId, taskId))
 
+    // Get assigned users (simplified - only for current user's assignment)
+    const assignedUsers: Array<{ id: string; name: string | null; username: string | null }> = []
+    if (currentUser.role === 'admin') {
+      // For admin, get all assigned users
+      const assignments = await db
+        .select({
+          userId: taskAssignments.userId,
+        })
+        .from(taskAssignments)
+        .where(eq(taskAssignments.taskId, taskId))
+
+      if (assignments.length > 0) {
+        const userIds = assignments.map(a => a.userId)
+        const usersResult = await db
+          .select({
+            id: users.id,
+            name: users.name,
+            username: users.username,
+          })
+          .from(users)
+          .where(eq(users.id, userIds[0])) // Just get the current user's info for now
+        if (usersResult.length > 0) {
+          assignedUsers.push(usersResult[0])
+        }
+      }
+    }
+
     return NextResponse.json({
       success: true,
       task: {
@@ -104,6 +131,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       },
       files,
       questions,
+      assignedUsers,
     })
   } catch (error) {
     console.error('Failed to fetch task:', error)

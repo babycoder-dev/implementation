@@ -7,7 +7,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { Loader2 } from 'lucide-react'
+import { Loader2, FileText } from 'lucide-react'
+import { FileUploader, type UploadedFile } from '@/components/FileUploader'
+import { UserSelector } from '@/components/UserSelector'
 
 export default function CreateTaskPage() {
   const router = useRouter()
@@ -18,6 +20,8 @@ export default function CreateTaskPage() {
     description: '',
     deadline: '',
   })
+  const [files, setFiles] = useState<UploadedFile[]>([])
+  const [assignedUserIds, setAssignedUserIds] = useState<string[]>([])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,8 +36,13 @@ export default function CreateTaskPage() {
           title: form.title,
           description: form.description || undefined,
           deadline: form.deadline ? new Date(form.deadline).toISOString() : undefined,
-          assignedUserIds: [],
-          files: [],
+          assignedUserIds: assignedUserIds,
+          files: files.map((f) => ({
+            name: f.name,
+            url: f.url,
+            path: f.path,
+            size: f.size,
+          })),
         }),
       })
 
@@ -99,6 +108,22 @@ export default function CreateTaskPage() {
             disabled={loading}
           />
         </div>
+
+        <div className="space-y-2">
+          <Label>附件</Label>
+          <FileUploader
+            onFilesChange={setFiles}
+            prefix="tasks"
+            maxFiles={5}
+            maxSize={50 * 1024 * 1024}
+          />
+        </div>
+
+        <UserSelector
+          selectedIds={assignedUserIds}
+          onChange={setAssignedUserIds}
+          disabled={loading}
+        />
 
         <div className="flex gap-4 pt-4">
           <Button type="submit" disabled={loading}>

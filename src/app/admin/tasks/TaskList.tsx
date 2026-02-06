@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus, Edit } from 'lucide-react'
+import { Plus, Eye, Edit } from 'lucide-react'
 import Link from 'next/link'
 
 interface Task {
@@ -26,6 +26,7 @@ export default function TaskList() {
         return res.json()
       })
       .then(data => {
+        console.log('Tasks API response:', data)
         setTasks(data.data || [])
         setLoading(false)
       })
@@ -59,6 +60,11 @@ export default function TaskList() {
               <CardTitle>{task.title}</CardTitle>
               <div className="flex gap-2">
                 <Link href={`/admin/tasks/${task.id}`}>
+                  <Button variant="ghost" size="sm">
+                    <Eye className="w-4 h-4" />
+                  </Button>
+                </Link>
+                <Link href={`/admin/tasks/${task.id}/edit`}>
                   <Button variant="outline" size="sm">
                     <Edit className="w-4 h-4" />
                   </Button>

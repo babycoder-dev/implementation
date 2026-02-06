@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
       fileId: validated.fileId,
       actionType: validated.actionType,
       pageNum: validated.pageNum,
+      duration: validated.duration ?? 0,
     })
 
     return NextResponse.json({ success: true }, { status: 201 })

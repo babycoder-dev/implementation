@@ -37,6 +37,8 @@ export async function POST(request: NextRequest) {
     const questions = await db
       .select({
         id: quizQuestions.id,
+        question: quizQuestions.question,
+        options: quizQuestions.options,
         correctAnswer: quizQuestions.correctAnswer,
       })
       .from(quizQuestions)
@@ -86,11 +88,25 @@ export async function POST(request: NextRequest) {
 
     await db.insert(quizAnswers).values(answersToInsert)
 
+    const answersResult = answers.map(a => {
+      const question = questionMap.get(a.questionId)
+      const isCorrect = question ? a.answer === question.correctAnswer : false
+      return {
+        questionId: a.questionId,
+        question: question?.question || '',
+        options: question?.options || [],
+        userAnswer: a.answer,
+        correctAnswer: question?.correctAnswer ?? 0,
+        isCorrect,
+      }
+    })
+
     return NextResponse.json({
       success: true,
       data: {
         score: correctCount,
         total: answers.length,
+        answers: answersResult,
       },
     })
   } catch (error) {

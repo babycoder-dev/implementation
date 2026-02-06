@@ -42,24 +42,28 @@ export async function POST(request: NextRequest) {
         .returning()
 
       // 创建文件记录
-      await tx.insert(taskFiles).values(
-        validated.files.map((file, index) => ({
-          taskId: createdTask.id,
-          title: file.title,
-          fileUrl: file.fileUrl,
-          fileType: file.fileType,
-          fileSize: file.fileSize,
-          order: index,
-        }))
-      )
+      if (validated.files.length > 0) {
+        await tx.insert(taskFiles).values(
+          validated.files.map((file, index) => ({
+            taskId: createdTask.id,
+            title: file.title,
+            fileUrl: file.fileUrl,
+            fileType: file.fileType,
+            fileSize: file.fileSize,
+            order: index,
+          }))
+        )
+      }
 
       // 分配用户
-      await tx.insert(taskAssignments).values(
-        validated.assignedUserIds.map((userId) => ({
-          taskId: createdTask.id,
-          userId,
-        }))
-      )
+      if (validated.assignedUserIds.length > 0) {
+        await tx.insert(taskAssignments).values(
+          validated.assignedUserIds.map((userId) => ({
+            taskId: createdTask.id,
+            userId,
+          }))
+        )
+      }
 
       // 创建题目
       if (validated.questions && validated.questions.length > 0) {

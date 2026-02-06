@@ -75,7 +75,7 @@ describe('TaskList', () => {
 
     render(<TaskList />)
     await waitFor(() => {
-      const editLink = document.querySelector('a[href="/admin/tasks/1"]')
+      const editLink = document.querySelector('a[href="/admin/tasks/1/edit"]')
       expect(editLink).toBeInTheDocument()
     })
   })

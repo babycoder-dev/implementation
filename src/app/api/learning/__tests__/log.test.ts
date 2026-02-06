@@ -49,6 +49,7 @@ describe('POST /api/learning/log', () => {
       fileId: '550e8400-e29b-41d4-a716-446655440000',
       actionType: 'next_page',
       pageNum: 2,
+      duration: 0,
     })
   })
 

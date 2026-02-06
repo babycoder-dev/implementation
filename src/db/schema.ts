@@ -64,7 +64,8 @@ export const learningLogs = pgTable('learning_logs', {
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   fileId: uuid('file_id').references(() => taskFiles.id, { onDelete: 'cascade' }).notNull(),
   pageNum: integer('page_num').notNull(),
-  actionType: text('action_type').notNull(), // open | next_page | finish
+  actionType: text('action_type').notNull(), // open | next_page | finish | time
+  duration: integer('duration').notNull().default(0), // 学习时长（秒）
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 

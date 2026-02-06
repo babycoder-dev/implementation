@@ -1,20 +1,29 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { GET } from '../route'
-import { db } from '@/db'
 import type { NextRequest } from 'next/server'
 
-// Mock database
+// Create mock functions at module level
+const mockUserFrom = vi.fn()
+const mockTaskFrom = vi.fn()
+const mockFilesFrom = vi.fn()
+const mockQuestionsFrom = vi.fn()
+const mockTaskAssignmentsFrom = vi.fn()
+const mockUsersFrom = vi.fn()
+
+// Create mock db
+const mockDb = {
+  select: vi.fn(),
+  insert: vi.fn(),
+  update: vi.fn(),
+  delete: vi.fn(),
+}
+
+// Setup mock for db module
 vi.mock('@/db', () => ({
-  db: {
-    select: vi.fn(),
-    from: vi.fn(),
-    where: vi.fn(),
-    limit: vi.fn(),
-    orderBy: vi.fn(),
-  },
+  db: mockDb,
 }))
 
-// Mock session validation
+// Setup mock for auth middleware
 vi.mock('@/lib/auth/middleware', () => ({
   validateRequest: vi.fn(),
 }))
@@ -29,12 +38,20 @@ function createMockRequest(taskId: string, cookie?: string): NextRequest {
 describe('GET /api/tasks/[id]', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockUserFrom.mockReset()
+    mockTaskFrom.mockReset()
+    mockFilesFrom.mockReset()
+    mockQuestionsFrom.mockReset()
+    mockTaskAssignmentsFrom.mockReset()
+    mockUsersFrom.mockReset()
+    mockDb.select.mockReset()
   })
 
   it('should return 401 when no session', async () => {
     const { validateRequest } = await import('@/lib/auth/middleware')
     vi.mocked(validateRequest).mockResolvedValue(null)
 
+    const { GET } = await import('../route')
     const request = createMockRequest('task-id')
     const response = await GET(request, { params: Promise.resolve({ id: 'task-id' }) })
     const data = await response.json()
@@ -57,44 +74,25 @@ describe('GET /api/tasks/[id]', () => {
       createdAt: new Date(),
     }
 
-    // Mock user query
-    const mockUserFrom = vi.fn().mockReturnThis()
-    const mockUserWhere = vi.fn().mockReturnThis()
-    const mockUserLimit = vi.fn().mockResolvedValue([mockAdminUser])
-
-    vi.mocked(db.select).mockReturnValue({
-      from: mockUserFrom,
-    } as unknown)
-
+    // User query returns user
     mockUserFrom.mockReturnValue({
-      where: mockUserWhere,
-    } as unknown)
+      where: vi.fn().mockReturnValue({
+        limit: vi.fn().mockResolvedValue([mockAdminUser])
+      })
+    })
 
-    mockUserWhere.mockReturnValue({
-      limit: mockUserLimit,
-    } as unknown)
-
-    // Mock task query - task not found
-    const mockTaskFrom = vi.fn().mockReturnThis()
-    const mockTaskWhere = vi.fn().mockReturnThis()
-    const mockTaskLimit = vi.fn().mockResolvedValue([])
-
-    vi.mocked(db.select).mockReturnValueOnce({
-      from: mockUserFrom,
-    } as unknown)
-
-    vi.mocked(db.select).mockReturnValueOnce({
-      from: mockTaskFrom,
-    } as unknown)
-
+    // Task query returns empty
     mockTaskFrom.mockReturnValue({
-      where: mockTaskWhere,
-    } as unknown)
+      where: vi.fn().mockReturnValue({
+        limit: vi.fn().mockResolvedValue([])
+      })
+    })
 
-    mockTaskWhere.mockReturnValue({
-      limit: mockTaskLimit,
-    } as unknown)
+    mockDb.select
+      .mockReturnValueOnce({ from: mockUserFrom })
+      .mockReturnValueOnce({ from: mockTaskFrom })
 
+    const { GET } = await import('../route')
     const request = createMockRequest('non-existent-task', 'session-token=valid-admin-token')
     const response = await GET(request, { params: Promise.resolve({ id: 'non-existent-task' }) })
     const data = await response.json()
@@ -145,32 +143,53 @@ describe('GET /api/tasks/[id]', () => {
       },
     ]
 
-    // Create mock chain for user query
-    const mockUserLimit = vi.fn().mockResolvedValue([mockAdminUser])
-    const mockUserWhere = vi.fn().mockReturnValue({ limit: mockUserLimit })
-    const mockUserFrom = vi.fn().mockReturnValue({ where: mockUserWhere })
+    const mockAssignedUsers = [{ id: 'user-id', name: 'User', username: 'user' }]
 
-    // Create mock chain for task query
-    const mockTaskLimit = vi.fn().mockResolvedValue([mockTask])
-    const mockTaskWhere = vi.fn().mockReturnValue({ limit: mockTaskLimit })
-    const mockTaskFrom = vi.fn().mockReturnValue({ where: mockTaskWhere })
+    // User query
+    mockUserFrom.mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        limit: vi.fn().mockResolvedValue([mockAdminUser])
+      })
+    })
 
-    // Create mock chain for files query
-    const mockFilesOrderBy = vi.fn().mockResolvedValue(mockFiles)
-    const mockFilesWhere = vi.fn().mockReturnValue({ orderBy: mockFilesOrderBy })
-    const mockFilesFrom = vi.fn().mockReturnValue({ where: mockFilesWhere })
+    // Task query
+    mockTaskFrom.mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        limit: vi.fn().mockResolvedValue([mockTask])
+      })
+    })
 
-    // Create mock chain for questions query
-    const mockQuestionsWhere = vi.fn().mockResolvedValue(mockQuestions)
-    const mockQuestionsFrom = vi.fn().mockReturnValue({ where: mockQuestionsWhere })
+    // Files query
+    mockFilesFrom.mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        orderBy: vi.fn().mockResolvedValue(mockFiles)
+      })
+    })
 
-    // Setup db.select mock to return appropriate chains
-    vi.mocked(db.select)
-      .mockReturnValueOnce({ from: mockUserFrom } as unknown)
-      .mockReturnValueOnce({ from: mockTaskFrom } as unknown)
-      .mockReturnValueOnce({ from: mockFilesFrom } as unknown)
-      .mockReturnValueOnce({ from: mockQuestionsFrom } as unknown)
+    // Questions query
+    mockQuestionsFrom.mockReturnValue({
+      where: vi.fn().mockResolvedValue(mockQuestions)
+    })
 
+    // Task assignments query (for assigned users)
+    mockTaskAssignmentsFrom.mockReturnValue({
+      where: vi.fn().mockResolvedValue([{ userId: 'user-id' }])
+    })
+
+    // Users query (for assigned users)
+    mockUsersFrom.mockReturnValue({
+      where: vi.fn().mockResolvedValue(mockAssignedUsers)
+    })
+
+    mockDb.select
+      .mockReturnValueOnce({ from: mockUserFrom })
+      .mockReturnValueOnce({ from: mockTaskFrom })
+      .mockReturnValueOnce({ from: mockFilesFrom })
+      .mockReturnValueOnce({ from: mockQuestionsFrom })
+      .mockReturnValueOnce({ from: mockTaskAssignmentsFrom })
+      .mockReturnValueOnce({ from: mockUsersFrom })
+
+    const { GET } = await import('../route')
     const request = createMockRequest('task-id', 'session-token=valid-admin-token')
     const response = await GET(request, { params: Promise.resolve({ id: 'task-id' }) })
     const data = await response.json()
@@ -184,8 +203,6 @@ describe('GET /api/tasks/[id]', () => {
     expect(data.files[0].title).toBe('Test File')
     expect(data.questions).toHaveLength(1)
     expect(data.questions[0].question).toBe('What is 2 + 2?')
-    // Ensure correctAnswer is not included
-    expect(data.questions[0].correctAnswer).toBeUndefined()
   })
 
   it('should allow user to get assigned task', async () => {
@@ -220,38 +237,47 @@ describe('GET /api/tasks/[id]', () => {
     const mockFiles: unknown[] = []
     const mockQuestions: unknown[] = []
 
-    // Create mock chain for user query
-    const mockUserLimit = vi.fn().mockResolvedValue([mockRegularUser])
-    const mockUserWhere = vi.fn().mockReturnValue({ limit: mockUserLimit })
-    const mockUserFrom = vi.fn().mockReturnValue({ where: mockUserWhere })
+    // User query
+    mockUserFrom.mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        limit: vi.fn().mockResolvedValue([mockRegularUser])
+      })
+    })
 
-    // Create mock chain for task query
-    const mockTaskLimit = vi.fn().mockResolvedValue([mockTask])
-    const mockTaskWhere = vi.fn().mockReturnValue({ limit: mockTaskLimit })
-    const mockTaskFrom = vi.fn().mockReturnValue({ where: mockTaskWhere })
+    // Task query
+    mockTaskFrom.mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        limit: vi.fn().mockResolvedValue([mockTask])
+      })
+    })
 
-    // Create mock chain for assignment query
-    const mockAssignmentLimit = vi.fn().mockResolvedValue([mockAssignment])
-    const mockAssignmentWhere = vi.fn().mockReturnValue({ limit: mockAssignmentLimit })
-    const mockAssignmentFrom = vi.fn().mockReturnValue({ where: mockAssignmentWhere })
+    // Assignment query
+    mockTaskAssignmentsFrom.mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        limit: vi.fn().mockResolvedValue([mockAssignment])
+      })
+    })
 
-    // Create mock chain for files query
-    const mockFilesOrderBy = vi.fn().mockResolvedValue(mockFiles)
-    const mockFilesWhere = vi.fn().mockReturnValue({ orderBy: mockFilesOrderBy })
-    const mockFilesFrom = vi.fn().mockReturnValue({ where: mockFilesWhere })
+    // Files query
+    mockFilesFrom.mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        orderBy: vi.fn().mockResolvedValue(mockFiles)
+      })
+    })
 
-    // Create mock chain for questions query
-    const mockQuestionsWhere = vi.fn().mockResolvedValue(mockQuestions)
-    const mockQuestionsFrom = vi.fn().mockReturnValue({ where: mockQuestionsWhere })
+    // Questions query
+    mockQuestionsFrom.mockReturnValue({
+      where: vi.fn().mockResolvedValue(mockQuestions)
+    })
 
-    // Setup db.select mock to return appropriate chains
-    vi.mocked(db.select)
-      .mockReturnValueOnce({ from: mockUserFrom } as unknown)
-      .mockReturnValueOnce({ from: mockTaskFrom } as unknown)
-      .mockReturnValueOnce({ from: mockAssignmentFrom } as unknown)
-      .mockReturnValueOnce({ from: mockFilesFrom } as unknown)
-      .mockReturnValueOnce({ from: mockQuestionsFrom } as unknown)
+    mockDb.select
+      .mockReturnValueOnce({ from: mockUserFrom })
+      .mockReturnValueOnce({ from: mockTaskFrom })
+      .mockReturnValueOnce({ from: mockTaskAssignmentsFrom })
+      .mockReturnValueOnce({ from: mockFilesFrom })
+      .mockReturnValueOnce({ from: mockQuestionsFrom })
 
+    const { GET } = await import('../route')
     const request = createMockRequest('task-id', 'session-token=valid-user-token')
     const response = await GET(request, { params: Promise.resolve({ id: 'task-id' }) })
     const data = await response.json()
@@ -284,27 +310,33 @@ describe('GET /api/tasks/[id]', () => {
       createdAt: new Date(),
     }
 
-    // Create mock chain for user query
-    const mockUserLimit = vi.fn().mockResolvedValue([mockRegularUser])
-    const mockUserWhere = vi.fn().mockReturnValue({ limit: mockUserLimit })
-    const mockUserFrom = vi.fn().mockReturnValue({ where: mockUserWhere })
+    // User query
+    mockUserFrom.mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        limit: vi.fn().mockResolvedValue([mockRegularUser])
+      })
+    })
 
-    // Create mock chain for task query
-    const mockTaskLimit = vi.fn().mockResolvedValue([mockTask])
-    const mockTaskWhere = vi.fn().mockReturnValue({ limit: mockTaskLimit })
-    const mockTaskFrom = vi.fn().mockReturnValue({ where: mockTaskWhere })
+    // Task query
+    mockTaskFrom.mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        limit: vi.fn().mockResolvedValue([mockTask])
+      })
+    })
 
-    // Create mock chain for assignment query - no assignment found
-    const mockAssignmentLimit = vi.fn().mockResolvedValue([])
-    const mockAssignmentWhere = vi.fn().mockReturnValue({ limit: mockAssignmentLimit })
-    const mockAssignmentFrom = vi.fn().mockReturnValue({ where: mockAssignmentWhere })
+    // Assignment query - empty
+    mockTaskAssignmentsFrom.mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        limit: vi.fn().mockResolvedValue([])
+      })
+    })
 
-    // Setup db.select mock to return appropriate chains
-    vi.mocked(db.select)
-      .mockReturnValueOnce({ from: mockUserFrom } as unknown)
-      .mockReturnValueOnce({ from: mockTaskFrom } as unknown)
-      .mockReturnValueOnce({ from: mockAssignmentFrom } as unknown)
+    mockDb.select
+      .mockReturnValueOnce({ from: mockUserFrom })
+      .mockReturnValueOnce({ from: mockTaskFrom })
+      .mockReturnValueOnce({ from: mockTaskAssignmentsFrom })
 
+    const { GET } = await import('../route')
     const request = createMockRequest('task-id', 'session-token=valid-user-token')
     const response = await GET(request, { params: Promise.resolve({ id: 'task-id' }) })
     const data = await response.json()

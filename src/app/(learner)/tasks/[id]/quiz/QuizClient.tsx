@@ -6,11 +6,28 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
+import { Progress } from '@/components/ui/progress'
+import { Badge } from '@/components/ui/badge'
 
 interface Question {
   id: string
   question: string
   options: string[]
+}
+
+interface AnswerResult {
+  questionId: string
+  question: string
+  options: string[]
+  userAnswer: number
+  correctAnswer: number
+  isCorrect: boolean
+}
+
+interface QuizResult {
+  score: number
+  total: number
+  answers: AnswerResult[]
 }
 
 interface QuizClientProps {
@@ -20,11 +37,15 @@ interface QuizClientProps {
 
 export default function QuizClient({ taskId, questions }: QuizClientProps) {
   const router = useRouter()
+  const [currentQuestion, setCurrentQuestion] = useState(0)
   const [answers, setAnswers] = useState<Record<string, number>>({})
   const [submitted, setSubmitted] = useState(false)
-  const [result, setResult] = useState<{ score: number; total: number } | null>(null)
+  const [result, setResult] = useState<QuizResult | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+
+  const progress = (Object.keys(answers).length / questions.length) * 100
+  const isAnswered = (questionId: string) => questionId in answers
 
   const handleAnswerChange = (questionId: string, value: string) => {
     setAnswers(prev => ({
@@ -75,10 +96,11 @@ export default function QuizClient({ taskId, questions }: QuizClientProps) {
 
   if (submitted && result) {
     const passed = result.score >= Math.ceil(result.total * 0.6)
+
     return (
-      <div className="container mx-auto py-8 max-w-2xl">
+      <div className="container mx-auto py-8 max-w-3xl space-y-6">
         <Card>
-          <CardHeader>
+          <CardHeader className="text-center">
             <CardTitle>测验结果</CardTitle>
           </CardHeader>
           <CardContent className="text-center space-y-4">
@@ -88,18 +110,74 @@ export default function QuizClient({ taskId, questions }: QuizClientProps) {
             <p className={`text-lg ${passed ? 'text-green-600' : 'text-red-600'}`}>
               {passed ? '及格' : '不及格，请重新学习'}
             </p>
-            <Button onClick={handleReturn} className="mt-4">
-              返回任务
-            </Button>
+            <Badge variant={passed ? 'default' : 'destructive'}>
+              {Math.round((result.score / result.total) * 100)}%
+            </Badge>
           </CardContent>
         </Card>
+
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold">答题详情</h2>
+          {result.answers.map((answer, idx) => (
+            <Card key={answer.questionId} className={answer.isCorrect ? 'border-green-200' : 'border-red-200'}>
+              <CardContent className="pt-6">
+                <div className="flex items-start gap-3">
+                  <Badge variant={answer.isCorrect ? 'default' : 'destructive'}>
+                    {idx + 1}
+                  </Badge>
+                  <div className="flex-1">
+                    <p className="font-medium mb-3">{answer.question}</p>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground">你的答案：</span>
+                        <span className={answer.isCorrect ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
+                          {String.fromCharCode(65 + answer.userAnswer)}. {answer.options[answer.userAnswer]}
+                        </span>
+                      </div>
+                      {!answer.isCorrect && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground">正确答案：</span>
+                          <span className="text-green-600 font-medium">
+                            {String.fromCharCode(65 + answer.correctAnswer)}. {answer.options[answer.correctAnswer]}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <Badge variant={answer.isCorrect ? 'outline' : 'destructive'}>
+                    {answer.isCorrect ? '正确' : '错误'}
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <div className="flex justify-center">
+          <Button onClick={handleReturn} size="lg">
+            返回任务
+          </Button>
+        </div>
       </div>
     )
   }
 
+  const currentQ = questions[currentQuestion]
+
   return (
     <div className="container mx-auto py-8 max-w-2xl space-y-6">
-      <h1 className="text-2xl font-bold">测验</h1>
+      <div className="space-y-2">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">测验</h1>
+          <span className="text-sm text-muted-foreground">
+            第 {currentQuestion + 1} 题 / 共 {questions.length} 题
+          </span>
+        </div>
+        <Progress value={progress} className="h-2" />
+        <p className="text-sm text-muted-foreground text-right">
+          已回答 {Object.keys(answers).length} / {questions.length} 题
+        </p>
+      </div>
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded">
@@ -107,36 +185,88 @@ export default function QuizClient({ taskId, questions }: QuizClientProps) {
         </div>
       )}
 
-      {questions.map((q, idx) => (
-        <Card key={q.id}>
-          <CardHeader>
-            <CardTitle>{idx + 1}. {q.question}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <RadioGroup
-              value={answers[q.id]?.toString() || ''}
-              onValueChange={(val) => handleAnswerChange(q.id, val)}
-              disabled={submitted}
-            >
-              {q.options.map((opt, optIdx) => (
-                <div key={optIdx} className="flex items-center space-x-2">
-                  <RadioGroupItem value={optIdx.toString()} id={`q${q.id}-opt${optIdx}`} />
-                  <Label htmlFor={`q${q.id}-opt${optIdx}`}>{opt}</Label>
-                </div>
-              ))}
-            </RadioGroup>
-          </CardContent>
-        </Card>
-      ))}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline">第 {currentQuestion + 1} 题</Badge>
+            <CardTitle>{currentQ.question}</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <RadioGroup
+            value={answers[currentQ.id]?.toString() || ''}
+            onValueChange={(val) => handleAnswerChange(currentQ.id, val)}
+            disabled={submitted}
+          >
+            {currentQ.options.map((opt, optIdx) => (
+              <div
+                key={optIdx}
+                className={`flex items-center space-x-2 p-3 rounded-lg border transition-colors ${
+                  answers[currentQ.id] === optIdx
+                    ? 'border-primary bg-primary/5'
+                    : 'border-transparent hover:border-muted-foreground/20'
+                }`}
+              >
+                <RadioGroupItem value={optIdx.toString()} id={`q${currentQ.id}-opt${optIdx}`} />
+                <Label
+                  htmlFor={`q${currentQ.id}-opt${optIdx}`}
+                  className="flex-1 cursor-pointer"
+                >
+                  {String.fromCharCode(65 + optIdx)}. {opt}
+                </Label>
+              </div>
+            ))}
+          </RadioGroup>
+        </CardContent>
+      </Card>
 
-      <Button
-        onClick={handleSubmit}
-        disabled={Object.keys(answers).length < questions.length || submitting}
-        className="w-full"
-        size="lg"
-      >
-        {submitting ? '提交中...' : '提交答案'}
-      </Button>
+      <div className="flex justify-between items-center">
+        <Button
+          variant="outline"
+          onClick={() => setCurrentQuestion(Math.max(0, currentQuestion - 1))}
+          disabled={currentQuestion === 0}
+        >
+          上一题
+        </Button>
+        <div className="flex gap-2">
+          {questions.map((q, idx) => (
+            <Button
+              key={q.id}
+              variant={idx === currentQuestion ? 'primary' : isAnswered(q.id) ? 'secondary' : 'outline'}
+              size="sm"
+              className="w-8 h-8 p-0"
+              onClick={() => setCurrentQuestion(idx)}
+            >
+              {idx + 1}
+            </Button>
+          ))}
+        </div>
+        {currentQuestion < questions.length - 1 ? (
+          <Button
+            onClick={() => setCurrentQuestion(Math.min(questions.length - 1, currentQuestion + 1))}
+          >
+            下一题
+          </Button>
+        ) : (
+          <Button
+            onClick={handleSubmit}
+            disabled={Object.keys(answers).length < questions.length || submitting}
+          >
+            {submitting ? '提交中...' : '提交答案'}
+          </Button>
+        )}
+      </div>
+
+      {currentQuestion === questions.length - 1 && Object.keys(answers).length >= questions.length && (
+        <Button
+          onClick={handleSubmit}
+          disabled={submitting}
+          className="w-full"
+          size="lg"
+        >
+          {submitting ? '提交中...' : '提交答案'}
+        </Button>
+      )}
     </div>
   )
 }

@@ -27,10 +27,18 @@ describe('QuizClient', () => {
   })
 
   it('displays quiz questions', async () => {
-    render(<QuizClient taskId="task-123" questions={mockQuestions} />)
+    const { container } = render(<QuizClient taskId="task-123" questions={mockQuestions} />)
 
+    // Wait for Q1 to load
     await waitFor(() => {
       expect(screen.getByText(/What is 2\+2\?/)).toBeTruthy()
+    })
+
+    // Navigate to Q2 to verify it's also there
+    const nextButton = screen.getByRole('button', { name: /下一题/i })
+    fireEvent.click(nextButton)
+
+    await waitFor(() => {
       expect(screen.getByText(/What is 3\+3\?/)).toBeTruthy()
     })
   })
@@ -40,25 +48,34 @@ describe('QuizClient', () => {
       ok: true,
       json: async () => ({
         success: true,
-        data: { score: 2, total: 2 }
+        data: { score: 2, total: 2, answers: [] }
       })
     } as Response)
 
-    render(<QuizClient taskId="task-123" questions={mockQuestions} />)
+    const { container } = render(<QuizClient taskId="task-123" questions={mockQuestions} />)
 
     // Wait for questions to load
     await waitFor(() => {
       expect(screen.getByText(/What is 2\+2\?/)).toBeTruthy()
     })
 
-    // Select answers by clicking on radio buttons
-    const radios = screen.getAllByRole('radio')
-    fireEvent.click(radios[1]) // Q1 - Option B (index 1)
-    fireEvent.click(radios[4]) // Q2 - Option B (index 4)
+    // Select answer for Q1 by clicking on the label (more reliable)
+    const labelQ1OptionB = screen.getByLabelText(/B\./)
+    fireEvent.click(labelQ1OptionB)
 
-    // Submit
-    const submitButton = screen.getByRole('button', { name: /提交答案/i })
-    fireEvent.click(submitButton)
+    // Click "下一题" to navigate to Q2
+    const nextButton = screen.getByRole('button', { name: /下一题/i })
+    fireEvent.click(nextButton)
+
+    // Select answer for Q2
+    const labelQ2OptionB = screen.getByLabelText(/B\./)
+    fireEvent.click(labelQ2OptionB)
+
+    // Use container.querySelector to find the submit button (last button with this text)
+    const submitButtons = container.querySelectorAll('button')
+    const submitButton = Array.from(submitButtons).find(btn => btn.textContent?.includes('提交答案'))
+    expect(submitButton).toBeTruthy()
+    fireEvent.click(submitButton!)
 
     // Wait for result - check for result title
     await waitFor(() => {
@@ -67,15 +84,36 @@ describe('QuizClient', () => {
   })
 
   it('shows error when not all questions answered', async () => {
-    render(<QuizClient taskId="task-123" questions={mockQuestions} />)
+    const { container } = render(<QuizClient taskId="task-123" questions={mockQuestions} />)
 
-    // Select only one answer
-    const radios = screen.getAllByRole('radio')
-    fireEvent.click(radios[1]) // Q1 - Option B (index 1)
+    // Wait for questions to load
+    await waitFor(() => {
+      expect(screen.getByText(/What is 2\+2\?/)).toBeTruthy()
+    })
 
-    // Submit without answering all - button should be disabled
-    const submitButton = screen.getByRole('button', { name: /提交答案/i })
-    expect(submitButton.hasAttribute('disabled')).toBe(true)
+    // Select only one answer for Q1
+    const labelQ1OptionB = screen.getByLabelText(/B\./)
+    fireEvent.click(labelQ1OptionB)
+
+    // Click "下一题" to navigate to Q2 but don't answer
+    const nextButton = screen.getByRole('button', { name: /下一题/i })
+    fireEvent.click(nextButton)
+
+    // Verify Q2 is displayed
+    await waitFor(() => {
+      expect(screen.getByText(/What is 3\+3\?/)).toBeTruthy()
+    })
+
+    // The "提交答案" button should NOT be enabled because not all questions are answered
+    // When on the last question with incomplete answers, the button is disabled
+    const allButtons = Array.from(container.querySelectorAll('button'))
+    const submitButtons = allButtons.filter(btn => btn.textContent?.includes('提交答案'))
+    expect(submitButtons.length).toBeGreaterThan(0)
+
+    // All submit buttons should be disabled when not all questions are answered
+    submitButtons.forEach(btn => {
+      expect(btn).toHaveAttribute('disabled')
+    })
   })
 
   it('shows passed result correctly (score >= 60%)', async () => {
@@ -84,19 +122,34 @@ describe('QuizClient', () => {
       ok: true,
       json: async () => ({
         success: true,
-        data: { score: 2, total: 2 }
+        data: { score: 2, total: 2, answers: [] }
       })
     } as Response)
 
-    render(<QuizClient taskId="task-123" questions={mockQuestions} />)
+    const { container } = render(<QuizClient taskId="task-123" questions={mockQuestions} />)
 
-    // Answer both questions (select all "B" options = indices 1, 4)
-    const radios = screen.getAllByRole('radio')
-    fireEvent.click(radios[1]) // Q1 - Option B
-    fireEvent.click(radios[4]) // Q2 - Option B
+    // Wait for questions to load
+    await waitFor(() => {
+      expect(screen.getByText(/What is 2\+2\?/)).toBeTruthy()
+    })
 
-    const submitButton = screen.getByRole('button', { name: /提交答案/i })
-    fireEvent.click(submitButton)
+    // Answer Q1 - select option B
+    const labelQ1OptionB = screen.getByLabelText(/B\./)
+    fireEvent.click(labelQ1OptionB)
+
+    // Click "下一题" to navigate to Q2
+    const nextButton = screen.getByRole('button', { name: /下一题/i })
+    fireEvent.click(nextButton)
+
+    // Answer Q2 - select option B
+    const labelQ2OptionB = screen.getByLabelText(/B\./)
+    fireEvent.click(labelQ2OptionB)
+
+    // Submit - use the last submit button which appears on the last question
+    const allButtons = container.querySelectorAll('button')
+    const submitButton = Array.from(allButtons).filter(btn => btn.textContent?.includes('提交答案')).pop()
+    expect(submitButton).toBeTruthy()
+    fireEvent.click(submitButton!)
 
     await waitFor(() => {
       expect(screen.getByText('测验结果')).toBeTruthy()
