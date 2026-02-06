@@ -288,24 +288,26 @@ export default function TaskEditor({ taskId }: { taskId: string }) {
   if (!task) return <div className="p-4">任务不存在</div>
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-4">
-        <Link href="/admin/tasks">
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="w-4 h-4 mr-2" />返回
-          </Button>
+    <div className="space-y-6">
+      <div className="mb-6">
+        <Link
+          href="/admin/tasks"
+          className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 mb-4"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          返回任务列表
         </Link>
-        <h1 className="text-2xl font-bold">编辑任务</h1>
+        <h1 className="text-2xl font-bold text-slate-900">编辑任务</h1>
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex gap-2 border-b">
+      <div className="flex gap-2 border-b border-slate-200">
         <button
           onClick={() => setActiveTab('basic')}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'basic'
-              ? 'border-primary-500 text-primary-600'
-              : 'border-transparent text-gray-600 hover:text-gray-900'
+              ? 'border-primary-500 text-slate-900'
+              : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
           基本信息
@@ -314,8 +316,8 @@ export default function TaskEditor({ taskId }: { taskId: string }) {
           onClick={() => setActiveTab('files')}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'files'
-              ? 'border-primary-500 text-primary-600'
-              : 'border-transparent text-gray-600 hover:text-gray-900'
+              ? 'border-primary-500 text-slate-900'
+              : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
           附件管理
@@ -324,8 +326,8 @@ export default function TaskEditor({ taskId }: { taskId: string }) {
           onClick={() => setActiveTab('users')}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'users'
-              ? 'border-primary-500 text-primary-600'
-              : 'border-transparent text-gray-600 hover:text-gray-900'
+              ? 'border-primary-500 text-slate-900'
+              : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
           任务分配
@@ -334,8 +336,8 @@ export default function TaskEditor({ taskId }: { taskId: string }) {
           onClick={() => setActiveTab('quiz')}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             activeTab === 'quiz'
-              ? 'border-primary-500 text-primary-600'
-              : 'border-transparent text-gray-600 hover:text-gray-900'
+              ? 'border-primary-500 text-slate-900'
+              : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
           测验管理

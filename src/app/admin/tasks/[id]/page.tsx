@@ -1,5 +1,10 @@
+import { AdminLayout } from '@/components/layout/AdminLayout'
 import TaskEditor from './TaskEditor'
 
 export default function TaskEditorPage({ params }: { params: { id: string } }) {
-  return <TaskEditor taskId={params.id} />
+  return (
+    <AdminLayout>
+      <TaskEditor taskId={params.id} />
+    </AdminLayout>
+  )
 }
