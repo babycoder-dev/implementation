@@ -27,7 +27,7 @@ export default function TaskList() {
       })
       .then(data => {
         console.log('Tasks API response:', data)
-        setTasks(data.data || [])
+        setTasks(data.tasks || [])
         setLoading(false)
       })
       .catch(err => {

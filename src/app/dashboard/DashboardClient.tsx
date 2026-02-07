@@ -100,7 +100,7 @@ export default function DashboardClient() {
         })
       }
       if (tasksResult.success) {
-        setTasks(tasksResult.data || [])
+        setTasks(tasksResult.tasks || [])
       }
     }).finally(() => setLoading(false))
 
