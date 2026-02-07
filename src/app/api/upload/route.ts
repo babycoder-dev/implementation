@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { env } from '@/env'
 import { validateRequest } from '@/lib/auth/middleware'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import { getPublicFileUrl } from '@/lib/storage/url-resolver'
 
 const s3Client = new S3Client({
   endpoint: `${env().MINIO_USE_SSL ? 'https' : 'http'}://${env().MINIO_ENDPOINT}:${env().MINIO_PORT}`,
@@ -41,7 +42,8 @@ export async function POST(request: NextRequest) {
       })
     )
 
-    const url = `${env().MINIO_USE_SSL ? 'https' : 'http'}://${env().MINIO_ENDPOINT}:${env().MINIO_PORT}/${env().MINIO_BUCKET}/${path}`
+    const internalUrl = `${env().MINIO_USE_SSL ? 'https' : 'http'}://${env().MINIO_ENDPOINT}:${env().MINIO_PORT}/${env().MINIO_BUCKET}/${path}`
+    const url = getPublicFileUrl(internalUrl)
 
     return NextResponse.json({
       success: true,
