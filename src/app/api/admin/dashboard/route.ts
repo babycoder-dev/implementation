@@ -152,7 +152,7 @@ export async function GET(request: NextRequest) {
       })
       .from(learningLogs)
       .innerJoin(users, eq(learningLogs.userId, users.id))
-      .groupBy(learningLogs.userId)
+      .groupBy(learningLogs.userId, users.username)
       .orderBy(desc(sql`SUM(${learningLogs.duration})`))
       .limit(5)
 
