@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/db'
-import { quizQuestions, taskAssignments, tasks } from '@/db/schema'
+import { quizQuestions, taskAssignments, tasks, users } from '@/db/schema'
 import { validateRequest } from '@/lib/auth/middleware'
 import { eq, and } from 'drizzle-orm'
 
@@ -124,23 +124,34 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if user has access to this task
-    const [assignment] = await db
+    // Check if user is admin - admins can create questions for any task
+    const [user] = await db
       .select()
-      .from(taskAssignments)
-      .where(
-        and(
-          eq(taskAssignments.taskId, taskId),
-          eq(taskAssignments.userId, auth.userId)
-        )
-      )
+      .from(users)
+      .where(eq(users.id, auth.userId))
       .limit(1)
 
-    if (!assignment) {
-      return NextResponse.json(
-        { success: false, error: '无权访问此任务' },
-        { status: 403 }
-      )
+    const isAdmin = user?.role === 'admin'
+
+    // Check if user has access to this task (skip for admins)
+    if (!isAdmin) {
+      const [assignment] = await db
+        .select()
+        .from(taskAssignments)
+        .where(
+          and(
+            eq(taskAssignments.taskId, taskId),
+            eq(taskAssignments.userId, auth.userId)
+          )
+        )
+        .limit(1)
+
+      if (!assignment) {
+        return NextResponse.json(
+          { success: false, error: '无权访问此任务' },
+          { status: 403 }
+        )
+      }
     }
 
     // Create the question
