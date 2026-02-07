@@ -6,11 +6,27 @@ import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 
+// Helper function to detect file type from extension
+function detectFileType(filename: string): 'pdf' | 'docx' | 'xlsx' | 'pptx' | 'video' | 'other' {
+  const ext = filename.split('.').pop()?.toLowerCase() || ''
+  const typeMap: Record<string, 'pdf' | 'docx' | 'xlsx' | 'pptx' | 'video'> = {
+    pdf: 'pdf',
+    docx: 'docx',
+    xlsx: 'xlsx',
+    pptx: 'pptx',
+    mp4: 'video',
+    mov: 'video',
+    avi: 'video',
+  }
+  return typeMap[ext] || 'other'
+}
+
 export interface UploadedFile {
-  name: string
-  url: string
+  title: string
+  fileUrl: string
   path: string
-  size: number
+  fileSize: number
+  fileType: 'pdf' | 'docx' | 'xlsx' | 'pptx' | 'video' | 'other'
 }
 
 interface FileUploaderProps {
@@ -79,10 +95,11 @@ export function FileUploader({
           if (data.success) {
             setUploadProgress((prev) => ({ ...prev, [fileId]: 100 }))
             uploadedFiles.push({
-              name: file.name,
-              url: data.url,
+              title: file.name,
+              fileUrl: data.url,
               path: data.path,
-              size: data.size,
+              fileSize: data.size,
+              fileType: detectFileType(file.name),
             })
           } else {
             setError(data.error || `上传 "${file.name}" 失败`)
@@ -195,14 +212,14 @@ export function FileUploader({
           <ul className="space-y-2">
             {files.map((file, index) => (
               <li
-                key={`${file.name}-${index}`}
+                key={`${file.title}-${index}`}
                 className="flex items-center justify-between p-3 bg-gray-50 rounded-md"
               >
                 <div className="flex items-center gap-3">
                   <File className="w-5 h-5 text-gray-400" />
                   <div>
-                    <p className="text-sm font-medium text-gray-700">{file.name}</p>
-                    <p className="text-xs text-gray-400">{formatFileSize(file.size)}</p>
+                    <p className="text-sm font-medium text-gray-700">{file.title}</p>
+                    <p className="text-xs text-gray-400">{formatFileSize(file.fileSize)}</p>
                   </div>
                 </div>
                 <Button
