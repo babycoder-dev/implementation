@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 100);
     const offset = (page - 1) * limit;
     const role = searchParams.get('role');
     const status = searchParams.get('status');
@@ -122,6 +122,11 @@ export async function POST(request: NextRequest) {
 
     if (!username || !password || !name) {
       return errorResponse('用户名、密码和姓名不能为空', 400);
+    }
+
+    // Validate role is a valid value
+    if (role !== undefined && !['admin', 'leader', 'user'].includes(role)) {
+      return errorResponse('无效的用户角色', 400);
     }
 
     // Validate password length (SRS-04 requires minimum 6 characters)

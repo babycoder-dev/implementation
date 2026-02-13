@@ -15,6 +15,14 @@ export async function GET(
 
     const { id: departmentId } = await params;
 
+    // Leaders can only view their own department
+    if (currentUser.role === 'leader') {
+      const leaderDept = await sql`SELECT department_id FROM users WHERE id = ${currentUser.userId}` as { department_id: string | null }[];
+      if (leaderDept[0]?.department_id !== departmentId) {
+        return NextResponse.json({ success: false, error: '只能查看本部门用户' }, { status: 403 });
+      }
+    }
+
     const users = await sql`
       SELECT id, username, name, role, status, created_at
       FROM users
@@ -41,6 +49,15 @@ export async function POST(
     }
 
     const { id: departmentId } = await params;
+
+    // Leaders can only add users to their own department
+    if (currentUser.role === 'leader') {
+      const leaderDept = await sql`SELECT department_id FROM users WHERE id = ${currentUser.userId}` as { department_id: string | null }[];
+      if (leaderDept[0]?.department_id !== departmentId) {
+        return NextResponse.json({ success: false, error: '只能管理本部门用户' }, { status: 403 });
+      }
+    }
+
     const { user_id } = await request.json();
 
     if (!user_id) {
@@ -78,6 +95,15 @@ export async function DELETE(
     }
 
     const { id: departmentId } = await params;
+
+    // Leaders can only remove users from their own department
+    if (currentUser.role === 'leader') {
+      const leaderDept = await sql`SELECT department_id FROM users WHERE id = ${currentUser.userId}` as { department_id: string | null }[];
+      if (leaderDept[0]?.department_id !== departmentId) {
+        return NextResponse.json({ success: false, error: '只能管理本部门用户' }, { status: 403 });
+      }
+    }
+
     const { user_id } = await request.json();
 
     if (!user_id) {
