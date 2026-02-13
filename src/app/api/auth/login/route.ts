@@ -34,8 +34,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if account is locked due to too many failed attempts (SRS-04)
-    if (isAccountLocked(username)) {
-      const remainingSeconds = getRemainingLockTime(username);
+    if (await isAccountLocked(username)) {
+      const remainingSeconds = await getRemainingLockTime(username);
       return NextResponse.json(
         { success: false, error: `登录尝试过多，请${Math.ceil(remainingSeconds / 60)}分钟后重试` },
         { status: 429 }
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
 
     if (userResult.length === 0) {
       // Record failed attempt even for non-existent user (prevent enumeration)
-      recordFailedAttempt(username);
+      await recordFailedAttempt(username);
       return NextResponse.json(
         { success: false, error: '用户名或密码错误' },
         { status: 401 }
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     const isValidPassword = await verifyPassword(password, user.password_hash);
     if (!isValidPassword) {
       // Record failed attempt
-      const isLocked = recordFailedAttempt(username);
+      const isLocked = await recordFailedAttempt(username);
       if (isLocked) {
         return NextResponse.json(
           { success: false, error: '登录尝试过多，账号已锁定30分钟' },
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Reset failed attempts on successful login
-    resetFailedAttempts(username);
+    await resetFailedAttempts(username);
 
     // 生成 JWT token
     const token = await createToken({
