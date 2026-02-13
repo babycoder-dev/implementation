@@ -29,8 +29,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Only admins can manage departments
-    if (currentUser.role !== 'admin') {
+    // Only admins can manage departments, but leaders can view departments
+    if (currentUser.role !== 'admin' && currentUser.role !== 'leader') {
       return NextResponse.json(
         { success: false, error: 'Forbidden' },
         { status: 403 }

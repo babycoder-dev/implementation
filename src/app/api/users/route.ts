@@ -129,9 +129,9 @@ export async function POST(request: NextRequest) {
       return errorResponse('无效的用户角色', 400);
     }
 
-    // Validate password length (SRS-04 requires minimum 6 characters)
-    if (password.length < 6) {
-      return errorResponse('密码长度不能少于6位', 400);
+    // Validate password length (SRS-04 requires minimum 8 characters for security)
+    if (password.length < 8) {
+      return errorResponse('密码长度不能少于8位', 400);
     }
 
     const db = sql;
