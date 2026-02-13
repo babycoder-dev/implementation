@@ -17,6 +17,7 @@ interface UserRow {
   name: string;
   role: string;
   department_id: string | null;
+  created_at: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -43,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     // 从数据库查询用户
     const userResult = await sql<UserRow[]>`
-      SELECT id, username, password_hash, name, role, department_id
+      SELECT id, username, password_hash, name, role, department_id, created_at
       FROM users
       WHERE username = ${username}
         AND status = 'active'
@@ -97,6 +98,7 @@ export async function POST(request: NextRequest) {
           name: user.name,
           role: user.role,
           department_id: user.department_id,
+          created_at: user.created_at,
         },
       },
       timestamp: new Date().toISOString(),

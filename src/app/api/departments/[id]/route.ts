@@ -24,7 +24,22 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (result.length === 0) {
       return NextResponse.json({ success: false, error: 'Department not found' }, { status: 404 });
     }
-    return NextResponse.json({ success: true, data: result[0] });
+
+    // Get department members
+    const members = await sql`
+      SELECT id, username, name, role, status, created_at
+      FROM users
+      WHERE department_id = ${departmentId}
+      ORDER BY created_at DESC
+    `;
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        ...result[0],
+        members: members
+      }
+    });
   } catch (error) {
     console.error('Error fetching department:', error);
     return NextResponse.json({ success: false, error: 'Failed to fetch department' }, { status: 500 });

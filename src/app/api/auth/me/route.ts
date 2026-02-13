@@ -14,6 +14,7 @@ interface UserRow {
   role: string;
   department_id: string | null;
   department_name: string | null;
+  created_at: string;
 }
 
 export async function GET(request: NextRequest) {
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 获取用户的完整信息，包括部门名称
+    // 获取用户的完整信息，包括部门名称和创建时间
     const userResult = await sql<UserRow[]>`
       SELECT
         u.id,
@@ -35,7 +36,8 @@ export async function GET(request: NextRequest) {
         u.name,
         u.role,
         u.department_id,
-        d.name AS department_name
+        d.name AS department_name,
+        u.created_at
       FROM users u
       LEFT JOIN departments d ON u.department_id = d.id
       WHERE u.id = ${user.userId}
@@ -60,6 +62,7 @@ export async function GET(request: NextRequest) {
           role: userData.role,
           department_id: userData.department_id,
           department_name: userData.department_name,
+          created_at: userData.created_at,
         },
       },
       timestamp: new Date().toISOString(),
