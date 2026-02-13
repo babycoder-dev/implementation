@@ -47,13 +47,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (validated.parent_id === departmentId) {
       return NextResponse.json({ success: false, error: '部门不能设置自己为上级部门' }, { status: 400 });
     }
-    if (validated.name) {
-      // Skip the duplicate name check for simplicity - it can be added later if needed
-      // The unique constraint in the database will handle duplicates
-    }
 
-    // Handle undefined values - use existing column value if not provided
-    // Get existing values first
+    // Get current values
     const currentDept = await sql<Array<{ name: string; description: string | null; parent_id: string | null; leader_id: string | null }>>`
       SELECT name, description, parent_id, leader_id FROM departments WHERE id = ${departmentId}
     `;
@@ -64,34 +59,42 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const current = currentDept[0];
 
-    // Use a different approach - build the query with template literals
-    // and only include fields that are actually being updated
-    let updateSql = '';
-    const updateParts: string[] = [];
+    // Build parameterized update
+    const newName = validated.name ?? current.name;
+    const newDesc = validated.description !== undefined ? validated.description : current.description;
+    const newParentId = validated.parent_id !== undefined ? validated.parent_id : current.parent_id;
+    const newLeaderId = validated.leader_id !== undefined ? validated.leader_id : current.leader_id;
+
+    // Build update fields and values
+    const updates: string[] = [];
+    const values: unknown[] = [];
+    let idx = 1;
 
     if (validated.name !== undefined) {
-      updateParts.push(`name = '${validated.name.replace(/'/g, "''")}'`);
+      updates.push(`name = $${idx++}`);
+      values.push(newName);
     }
     if (validated.description !== undefined) {
-      const desc = validated.description === null ? 'NULL' : `'${validated.description.replace(/'/g, "''")}'`;
-      updateParts.push(`description = ${desc}`);
+      updates.push(`description = $${idx++}`);
+      values.push(newDesc);
     }
     if (validated.parent_id !== undefined) {
-      const pid = validated.parent_id === null ? 'NULL' : `'${validated.parent_id}'`;
-      updateParts.push(`parent_id = ${pid}::uuid`);
+      updates.push(`parent_id = $${idx++}`);
+      values.push(newParentId);
     }
     if (validated.leader_id !== undefined) {
-      const lid = validated.leader_id === null ? 'NULL' : `'${validated.leader_id}'`;
-      updateParts.push(`leader_id = ${lid}::uuid`);
+      updates.push(`leader_id = $${idx++}`);
+      values.push(newLeaderId);
     }
 
-    if (updateParts.length === 0) {
+    if (updates.length === 0) {
       return NextResponse.json({ success: false, error: '没有要更新的字段' }, { status: 400 });
     }
 
-    updateSql = `UPDATE departments SET ${updateParts.join(', ')}, updated_at = NOW() WHERE id = '${departmentId}' RETURNING *`;
+    values.push(departmentId);
+    const updateSql = `UPDATE departments SET ${updates.join(', ')}, updated_at = NOW() WHERE id = $${idx} RETURNING *`;
 
-    const result = await sql.unsafe(updateSql) as Array<{ id: string; name: string }>;
+    const result = await sql.unsafe(updateSql, ...values) as Array<{ id: string; name: string; description: string | null; parent_id: string | null; leader_id: string | null; created_at: Date; updated_at: Date | null }>;
 
     return NextResponse.json({ success: true, data: result[0], message: '部门更新成功' });
   } catch (error) {
