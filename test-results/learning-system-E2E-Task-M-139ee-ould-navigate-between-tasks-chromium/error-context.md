@@ -1,0 +1,165 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "学习管理系统" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - img [ref=e7]
+        - generic [ref=e9]: 学习管理系统
+      - navigation [ref=e10]:
+        - link "我的学习" [ref=e11] [cursor=pointer]:
+          - /url: /
+        - link "课程目录" [ref=e12] [cursor=pointer]:
+          - /url: /courses
+        - link "证书" [ref=e13] [cursor=pointer]:
+          - /url: /certificates
+      - link "登录" [ref=e15] [cursor=pointer]:
+        - /url: /auth/login
+        - button "登录" [ref=e16]:
+          - img [ref=e17]
+          - text: 登录
+  - main [ref=e20]:
+    - generic [ref=e21]:
+      - complementary [ref=e22]:
+        - generic [ref=e23]:
+          - generic [ref=e24]:
+            - img [ref=e25]
+            - generic [ref=e27]: 管理后台
+          - navigation [ref=e28]:
+            - link "数据看板" [ref=e29] [cursor=pointer]:
+              - /url: /admin
+              - img [ref=e30]
+              - text: 数据看板
+            - link "部门管理" [ref=e35] [cursor=pointer]:
+              - /url: /admin/departments
+              - img [ref=e36]
+              - text: 部门管理
+            - link "用户管理" [ref=e40] [cursor=pointer]:
+              - /url: /admin/users
+              - img [ref=e41]
+              - text: 用户管理
+            - link "任务管理" [ref=e46] [cursor=pointer]:
+              - /url: /admin/tasks
+              - img [ref=e47]
+              - text: 任务管理
+            - link "题目管理" [ref=e50] [cursor=pointer]:
+              - /url: /admin/questions
+              - img [ref=e51]
+              - text: 题目管理
+            - link "系统设置" [ref=e53] [cursor=pointer]:
+              - /url: /admin/settings
+              - img [ref=e54]
+              - text: 系统设置
+          - generic [ref=e57]:
+            - generic [ref=e58]:
+              - img [ref=e60]
+              - generic [ref=e63]:
+                - paragraph [ref=e64]: 管理员
+                - paragraph [ref=e65]: admin
+            - button "退出" [ref=e67] [cursor=pointer]:
+              - img [ref=e68]
+              - text: 退出
+      - main [ref=e71]:
+        - generic [ref=e73]:
+          - generic [ref=e74]:
+            - generic [ref=e75]:
+              - heading "任务管理" [level=1] [ref=e76]
+              - paragraph [ref=e77]: 管理学习任务和文件
+            - button "创建任务" [ref=e78] [cursor=pointer]:
+              - img [ref=e79]
+              - text: 创建任务
+          - generic [ref=e81]:
+            - img [ref=e82]
+            - textbox "搜索任务..." [ref=e85]
+          - table [ref=e88]:
+            - rowgroup [ref=e89]:
+              - row "任务标题 截止时间 状态 文件数 完成情况 创建人 创建时间 操作" [ref=e90]:
+                - columnheader "任务标题" [ref=e91]
+                - columnheader "截止时间" [ref=e92]
+                - columnheader "状态" [ref=e93]
+                - columnheader "文件数" [ref=e94]
+                - columnheader "完成情况" [ref=e95]
+                - columnheader "创建人" [ref=e96]
+                - columnheader "创建时间" [ref=e97]
+                - columnheader "操作" [ref=e98]
+            - rowgroup [ref=e99]:
+              - row "新员工入职培训 帮助新员工快速了解公司文化和工作流程 2024/02/10 进行中 5 3/50 管理员 2024/01/15" [ref=e100]:
+                - cell "新员工入职培训 帮助新员工快速了解公司文化和工作流程" [ref=e101]:
+                  - generic [ref=e102]:
+                    - paragraph [ref=e103]: 新员工入职培训
+                    - paragraph [ref=e104]: 帮助新员工快速了解公司文化和工作流程
+                - cell "2024/02/10" [ref=e105]
+                - cell "进行中" [ref=e106]:
+                  - generic [ref=e107]: 进行中
+                - cell "5" [ref=e108]:
+                  - generic [ref=e109]:
+                    - img [ref=e110]
+                    - generic [ref=e113]: "5"
+                - cell "3/50" [ref=e114]:
+                  - generic [ref=e118]: 3/50
+                - cell "管理员" [ref=e119]
+                - cell "2024/01/15" [ref=e120]
+                - cell [ref=e121]:
+                  - button [ref=e122] [cursor=pointer]:
+                    - img [ref=e123]
+              - row "安全规范学习 学习公司安全规范和相关制度 2024/02/15 待开始 3 0/50 管理员 2024/01/20" [ref=e127]:
+                - cell "安全规范学习 学习公司安全规范和相关制度" [ref=e128]:
+                  - generic [ref=e129]:
+                    - paragraph [ref=e130]: 安全规范学习
+                    - paragraph [ref=e131]: 学习公司安全规范和相关制度
+                - cell "2024/02/15" [ref=e132]
+                - cell "待开始" [ref=e133]:
+                  - generic [ref=e134]: 待开始
+                - cell "3" [ref=e135]:
+                  - generic [ref=e136]:
+                    - img [ref=e137]
+                    - generic [ref=e140]: "3"
+                - cell "0/50" [ref=e141]:
+                  - generic [ref=e144]: 0/50
+                - cell "管理员" [ref=e145]
+                - cell "2024/01/20" [ref=e146]
+                - cell [ref=e147]:
+                  - button [ref=e148] [cursor=pointer]:
+                    - img [ref=e149]
+              - row "产品知识培训 深入了解公司产品线和核心功能 2024/02/20 待开始 8 0/50 王五 2024/01/25" [ref=e153]:
+                - cell "产品知识培训 深入了解公司产品线和核心功能" [ref=e154]:
+                  - generic [ref=e155]:
+                    - paragraph [ref=e156]: 产品知识培训
+                    - paragraph [ref=e157]: 深入了解公司产品线和核心功能
+                - cell "2024/02/20" [ref=e158]
+                - cell "待开始" [ref=e159]:
+                  - generic [ref=e160]: 待开始
+                - cell "8" [ref=e161]:
+                  - generic [ref=e162]:
+                    - img [ref=e163]
+                    - generic [ref=e166]: "8"
+                - cell "0/50" [ref=e167]:
+                  - generic [ref=e170]: 0/50
+                - cell "王五" [ref=e171]
+                - cell "2024/01/25" [ref=e172]
+                - cell [ref=e173]:
+                  - button [ref=e174] [cursor=pointer]:
+                    - img [ref=e175]
+              - row "2023年度总结报告 公司2023年度工作总结 2024/01/05 已完成 2 156/50 管理员 2024/01/01" [ref=e179]:
+                - cell "2023年度总结报告 公司2023年度工作总结" [ref=e180]:
+                  - generic [ref=e181]:
+                    - paragraph [ref=e182]: 2023年度总结报告
+                    - paragraph [ref=e183]: 公司2023年度工作总结
+                - cell "2024/01/05" [ref=e184]
+                - cell "已完成" [ref=e185]:
+                  - generic [ref=e186]: 已完成
+                - cell "2" [ref=e187]:
+                  - generic [ref=e188]:
+                    - img [ref=e189]
+                    - generic [ref=e192]: "2"
+                - cell "156/50" [ref=e193]:
+                  - generic [ref=e197]: 156/50
+                - cell "管理员" [ref=e198]
+                - cell "2024/01/01" [ref=e199]
+                - cell [ref=e200]:
+                  - button [ref=e201] [cursor=pointer]:
+                    - img [ref=e202]
+  - alert [ref=e206]
+```

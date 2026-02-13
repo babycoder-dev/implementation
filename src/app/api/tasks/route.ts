@@ -52,14 +52,14 @@ interface TaskResponse {
   description: string | null;
   deadline: string | null;
   status: 'draft' | 'published' | 'completed' | 'archived';
-  passingScore: number | null;
-  strictMode: boolean;
-  enableQuiz: boolean;
-  createdBy: string;
-  createdByName: string | null;
-  createdAt: string;
-  fileCount: number;
-  assignmentCount: number;
+  passing_score: number | null;
+  strict_mode: boolean;
+  enable_quiz: boolean;
+  created_by: string;
+  created_by_name: string | null;
+  created_at: string;
+  file_count: number;
+  assignment_count: number;
 }
 
 // GET /api/tasks - Get all tasks
@@ -125,14 +125,14 @@ export async function GET(request: NextRequest) {
       description: row.description,
       deadline: row.deadline,
       status: row.status,
-      passingScore: row.passing_score,
-      strictMode: row.strict_mode,
-      enableQuiz: row.enable_quiz,
-      createdBy: row.created_by,
-      createdByName: row.created_by_name,
-      createdAt: row.created_at,
-      fileCount: Number(row.file_count) || 0,
-      assignmentCount: Number(row.assignment_count) || 0,
+      passing_score: row.passing_score,
+      strict_mode: row.strict_mode,
+      enable_quiz: row.enable_quiz,
+      created_by: row.created_by,
+      created_by_name: row.created_by_name,
+      created_at: row.created_at,
+      file_count: Number(row.file_count) || 0,
+      assignment_count: Number(row.assignment_count) || 0,
     }));
 
     const totalPages = Math.ceil(total / limit);
@@ -220,14 +220,14 @@ export async function POST(request: NextRequest) {
       description: task.description,
       deadline: task.deadline,
       status: task.status,
-      passingScore: task.passing_score,
-      strictMode: task.strict_mode,
-      enableQuiz: task.enable_quiz,
-      createdBy: task.created_by,
-      createdByName: task.created_by_name,
-      createdAt: task.created_at,
-      fileCount: parseInt(fileCountResult[0].count),
-      assignmentCount: parseInt(assignmentCountResult[0].count),
+      passing_score: task.passing_score,
+      strict_mode: task.strict_mode,
+      enable_quiz: task.enable_quiz,
+      created_by: task.created_by,
+      created_by_name: task.created_by_name,
+      created_at: task.created_at,
+      file_count: parseInt(fileCountResult[0].count),
+      assignment_count: parseInt(assignmentCountResult[0].count),
     };
 
     return successResponse(taskResponse, { message: '任务创建成功' }, 201);

@@ -3,12 +3,16 @@ import { sql } from '@/lib/db';
 import { getUserFromHeaders } from '@/lib/auth';
 import { successResponse, errorResponse } from '@/lib/api-response';
 
+// Database row types
 interface TaskRow {
   id: string;
   title: string;
   description: string | null;
   deadline: string | null;
-  passing_score: number;
+  status: string;
+  passing_score: number | null;
+  strict_mode: boolean;
+  enable_quiz: boolean;
   created_at: string;
 }
 
@@ -18,11 +22,29 @@ interface TaskFileRow {
   title: string;
   file_url: string;
   original_url: string | null;
-  file_type: 'pdf' | 'video' | 'office';
+  file_type: string;
   file_size: number;
   duration: number | null;
-  order: number;
+  total_pages: number | null;
+  "order": number;
   converted: boolean;
+}
+
+interface FileProgressRow {
+  id: string;
+  user_id: string;
+  file_id: string;
+  task_id: string;
+  current_page: number;
+  total_pages: number;
+  scroll_position: number;
+  current_time: number;
+  duration: number;
+  progress: number;
+  effective_time: number;
+  started_at: string;
+  completed_at: string | null;
+  last_accessed: string;
 }
 
 interface AssignmentRow {
@@ -30,61 +52,47 @@ interface AssignmentRow {
   task_id: string;
   user_id: string;
   assigned_at: string;
-  completed_at: string | null;
+  submitted_at: string | null;
+  is_completed: boolean;
 }
 
-interface LearningProgressRow {
+interface QuizSubmissionRow {
   id: string;
-  user_id: string;
   task_id: string;
-  file_id: string;
-  status: 'not_started' | 'in_progress' | 'completed';
-  progress: number;
-  started_at: string | null;
+  user_id: string;
+  score: number;
+  passed: boolean;
+  total_questions: number;
+  submitted_at: string;
+}
+
+// Response types based on SRS-03
+interface FileProgress {
+  current_page?: number;
+  current_time?: number;
+  progress_percent: number;
+  effective_time: number;
+  is_completed: boolean;
   completed_at: string | null;
 }
 
-interface TaskDetailResponse {
-  task: {
-    id: string;
-    title: string;
-    description: string | null;
-    deadline: string | null;
-    passingScore: number;
-    createdAt: string;
-  };
-  files: Array<{
-    id: string;
-    taskId: string;
-    title: string;
-    fileUrl: string;
-    originalUrl: string | null;
-    fileType: 'pdf' | 'video' | 'office';
-    fileSize: number;
-    duration: number | null;
-    order: number;
-    converted: boolean;
-  }>;
-  assignment: {
-    id: string;
-    taskId: string;
-    userId: string;
-    assignedAt: string;
-    completedAt: string | null;
-  } | null;
-  progress: Array<{
-    id: string;
-    userId: string;
-    taskId: string;
-    fileId: string;
-    status: 'not_started' | 'in_progress' | 'completed';
-    progress: number;
-    startedAt: string | null;
-    completedAt: string | null;
-  }>;
+interface TaskFile {
+  id: string;
+  title: string;
+  file_type: string;
+  file_size: number;
+  duration: number | null;
+  total_pages: number | null;
+  progress: FileProgress;
 }
 
-// GET /api/tasks/[id]/learn - Get task learning details for current user
+interface QuizInfo {
+  enabled: boolean;
+  completed: boolean;
+  passed: boolean | null;
+}
+
+// GET /api/tasks/[id]/learn - Get task learning details (SRS-03)
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -98,7 +106,10 @@ export async function GET(
     const { id: taskId } = await params;
 
     // Get task details
-    const taskResult = await sql<TaskRow[]>`SELECT * FROM tasks WHERE id = ${taskId}`;
+    const taskResult = await sql<TaskRow[]>`
+      SELECT id, title, description, deadline, status, passing_score, strict_mode, enable_quiz, created_at
+      FROM tasks WHERE id = ${taskId}
+    `;
 
     if (taskResult.length === 0) {
       return errorResponse('任务不存在', 404);
@@ -106,53 +117,115 @@ export async function GET(
 
     const task = taskResult[0];
 
-    // Get task files
-    const filesResult = await sql<TaskFileRow[]>`SELECT * FROM task_files WHERE task_id = ${taskId} ORDER BY "order" ASC`;
+    // Only allow viewing published tasks
+    if (task.status !== 'published') {
+      return errorResponse('任务未发布', 403);
+    }
 
-    // Get user's assignment for this task
-    const assignmentResult = await sql<AssignmentRow[]>`SELECT * FROM task_assignments WHERE task_id = ${taskId} AND user_id = ${currentUser.userId}`;
+    // Get task files with progress
+    const filesResult = await sql<TaskFileRow[]>`
+      SELECT id, task_id, title, file_url, original_url, file_type, file_size, duration, total_pages, "order", converted
+      FROM task_files WHERE task_id = ${taskId} ORDER BY "order" ASC
+    `;
 
-    // Get user's learning progress for all files in this task
-    const progressResult = await sql<LearningProgressRow[]>`SELECT * FROM learning_progress WHERE task_id = ${taskId} AND user_id = ${currentUser.userId}`;
+    // Get user's assignment
+    const assignmentResult = await sql<AssignmentRow[]>`
+      SELECT id, task_id, user_id, assigned_at, submitted_at, is_completed
+      FROM task_assignments WHERE task_id = ${taskId} AND user_id = ${currentUser.userId}
+    `;
 
-    const response: TaskDetailResponse = {
+    // Get user's file progress
+    const fileIds = filesResult.map(f => f.id);
+    let progressResult: FileProgressRow[] = [];
+
+    if (fileIds.length > 0) {
+      progressResult = await sql<FileProgressRow[]>`
+        SELECT fp.* FROM file_progress fp
+        WHERE fp.user_id = ${currentUser.userId} AND fp.file_id IN ${sql(fileIds)}
+      `;
+    }
+
+    // Create progress map
+    const progressMap = new Map(progressResult.map(p => [p.file_id, p]));
+
+    // Build files array with progress
+    const files: TaskFile[] = filesResult.map(file => {
+      const progress = progressMap.get(file.id);
+      const fileType = file.file_type as 'pdf' | 'video' | 'office';
+
+      let fileProgress: FileProgress;
+
+      if (!progress) {
+        // No progress yet
+        fileProgress = {
+          progress_percent: 0,
+          effective_time: 0,
+          is_completed: false,
+          completed_at: null,
+        };
+      } else {
+        fileProgress = {
+          current_page: fileType === 'pdf' ? progress.current_page : undefined,
+          current_time: fileType === 'video' ? progress.current_time : undefined,
+          progress_percent: Number(progress.progress),
+          effective_time: progress.effective_time,
+          is_completed: progress.completed_at !== null,
+          completed_at: progress.completed_at,
+        };
+      }
+
+      return {
+        id: file.id,
+        title: file.title,
+        file_type: file.file_type,
+        file_size: file.file_size,
+        duration: file.duration,
+        total_pages: file.total_pages,
+        progress: fileProgress,
+      };
+    });
+
+    // Get quiz info
+    let quizInfo: QuizInfo = {
+      enabled: task.enable_quiz,
+      completed: false,
+      passed: null,
+    };
+
+    if (task.enable_quiz) {
+      const quizSubmission = await sql<QuizSubmissionRow[]>`
+        SELECT id, task_id, user_id, score, passed, total_questions, submitted_at
+        FROM quiz_submissions
+        WHERE task_id = ${taskId} AND user_id = ${currentUser.userId}
+        ORDER BY submitted_at DESC LIMIT 1
+      `;
+
+      if (quizSubmission.length > 0) {
+        quizInfo = {
+          enabled: true,
+          completed: true,
+          passed: quizSubmission[0].passed,
+        };
+      }
+    }
+
+    // Build response
+    const response = {
       task: {
         id: task.id,
         title: task.title,
         description: task.description,
         deadline: task.deadline,
-        passingScore: task.passing_score,
-        createdAt: task.created_at,
       },
-      files: filesResult.map(f => ({
-        id: f.id,
-        taskId: f.task_id,
-        title: f.title,
-        fileUrl: f.file_url,
-        originalUrl: f.original_url,
-        fileType: f.file_type,
-        fileSize: f.file_size,
-        duration: f.duration,
-        order: f.order,
-        converted: f.converted,
-      })),
+      files,
       assignment: assignmentResult.length > 0 ? {
-        id: assignmentResult[0].id,
-        taskId: assignmentResult[0].task_id,
-        userId: assignmentResult[0].user_id,
-        assignedAt: assignmentResult[0].assigned_at,
-        completedAt: assignmentResult[0].completed_at,
-      } : null,
-      progress: progressResult.map(p => ({
-        id: p.id,
-        userId: p.user_id,
-        taskId: p.task_id,
-        fileId: p.file_id,
-        status: p.status,
-        progress: p.progress,
-        startedAt: p.started_at,
-        completedAt: p.completed_at,
-      })),
+        is_completed: assignmentResult[0].is_completed,
+        submitted_at: assignmentResult[0].submitted_at,
+      } : {
+        is_completed: false,
+        submitted_at: null,
+      },
+      quiz: quizInfo,
     };
 
     return successResponse(response);

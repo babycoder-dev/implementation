@@ -15,7 +15,8 @@ export default function CreateTaskPage() {
   const [form, setForm] = useState({
     title: '',
     description: '',
-    deadline: ''
+    deadline: '',
+    passingScore: '60'
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -29,7 +30,8 @@ export default function CreateTaskPage() {
         body: JSON.stringify({
           title: form.title,
           description: form.description || null,
-          deadline: form.deadline || null
+          deadline: form.deadline || null,
+          passingScore: parseInt(form.passingScore) || 60
         })
       })
 
@@ -85,6 +87,19 @@ export default function CreateTaskPage() {
                 onChange={e => setForm({...form, deadline: e.target.value})}
                 className="mt-1"
               />
+            </div>
+            <div>
+              <label className="text-sm font-medium">及格分数</label>
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                value={form.passingScore}
+                onChange={e => setForm({...form, passingScore: e.target.value})}
+                placeholder="输入及格分数 (0-100)"
+                className="mt-1"
+              />
+              <p className="text-xs text-gray-500 mt-1">默认 60 分，范围 0-100</p>
             </div>
             <Button type="submit" disabled={loading || !form.title}>
               <Save className="w-4 h-4 mr-2" />

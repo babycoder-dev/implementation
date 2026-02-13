@@ -88,22 +88,22 @@ interface QuizQuestionRow {
 interface TaskFile {
   id: string;
   title: string;
-  fileUrl: string;
-  originalUrl: string | null;
-  fileType: string;
-  fileSize: number;
+  file_url: string;
+  original_url: string | null;
+  file_type: string;
+  file_size: number;
   duration: number | null;
-  requiredCompletion: string;
+  required_completion: string;
   order: number;
   converted: boolean;
 }
 
 interface TaskAssignment {
-  userId: string;
-  userName: string | null;
-  departmentName: string | null;
-  assignedAt: string;
-  isCompleted: boolean;
+  user_id: string;
+  user_name: string | null;
+  department_name: string | null;
+  assigned_at: string;
+  is_completed: boolean;
 }
 
 interface QuizQuestion {
@@ -124,15 +124,15 @@ interface TaskDetailResponse {
   description: string | null;
   deadline: string | null;
   status: string;
-  passingScore: number | null;
-  strictMode: boolean;
-  enableQuiz: boolean;
-  createdBy: CreatedBy;
+  passing_score: number | null;
+  strict_mode: boolean;
+  enable_quiz: boolean;
+  created_by: CreatedBy;
   files: TaskFile[];
   assignments: TaskAssignment[];
-  quizQuestions: QuizQuestion[];
-  createdAt: string;
-  updatedAt: string | null;
+  quiz_questions: QuizQuestion[];
+  created_at: string;
+  updated_at: string | null;
 }
 
 // Helper function to validate state transition
@@ -185,12 +185,12 @@ export async function GET(
     const files: TaskFile[] = filesResult.map((file) => ({
       id: file.id,
       title: file.title,
-      fileUrl: file.file_url,
-      originalUrl: file.original_url,
-      fileType: file.file_type,
-      fileSize: file.file_size,
+      file_url: file.file_url,
+      original_url: file.original_url,
+      file_type: file.file_type,
+      file_size: file.file_size,
       duration: file.duration,
-      requiredCompletion: file.required_completion,
+      required_completion: file.required_completion,
       order: file.order,
       converted: file.converted,
     }));
@@ -205,11 +205,11 @@ export async function GET(
     ` as TaskAssignmentRow[];
 
     const assignments: TaskAssignment[] = assignmentsResult.map((assignment) => ({
-      userId: assignment.user_id,
-      userName: assignment.user_name,
-      departmentName: assignment.department_name,
-      assignedAt: assignment.assigned_at,
-      isCompleted: assignment.is_completed,
+      user_id: assignment.user_id,
+      user_name: assignment.user_name,
+      department_name: assignment.department_name,
+      assigned_at: assignment.assigned_at,
+      is_completed: assignment.is_completed,
     }));
 
     // Get quiz questions WITHOUT correct_answer
@@ -234,18 +234,18 @@ export async function GET(
       description: task.description,
       deadline: task.deadline,
       status: task.status,
-      passingScore: task.passing_score,
-      strictMode: task.strict_mode,
-      enableQuiz: task.enable_quiz,
-      createdBy: {
+      passing_score: task.passing_score,
+      strict_mode: task.strict_mode,
+      enable_quiz: task.enable_quiz,
+      created_by: {
         id: task.created_by,
         name: task.created_by_name,
       },
       files,
       assignments,
-      quizQuestions,
-      createdAt: task.created_at,
-      updatedAt: task.updated_at,
+      quiz_questions: quizQuestions,
+      created_at: task.created_at,
+      updated_at: task.updated_at,
     };
 
     return successResponse(response);
@@ -362,11 +362,11 @@ export async function PUT(
       description: updatedTask.description,
       deadline: updatedTask.deadline,
       status: updatedTask.status,
-      passingScore: updatedTask.passing_score,
-      strictMode: updatedTask.strict_mode,
-      enableQuiz: updatedTask.enable_quiz,
-      createdAt: updatedTask.created_at,
-      updatedAt: updatedTask.updated_at,
+      passing_score: updatedTask.passing_score,
+      strict_mode: updatedTask.strict_mode,
+      enable_quiz: updatedTask.enable_quiz,
+      created_at: updatedTask.created_at,
+      updated_at: updatedTask.updated_at,
     };
 
     return successResponse(response, { message: '任务更新成功' });
