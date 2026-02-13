@@ -26,12 +26,12 @@ interface UserResponse {
   created_at: string;
 }
 
-// GET /api/users - Get all users (admin only)
+// GET /api/users - Get all users (admin/leader)
 export async function GET(request: NextRequest) {
   try {
     // Check authentication
     const currentUser = getUserFromHeaders(request);
-    if (!currentUser || currentUser.role !== 'admin') {
+    if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'leader')) {
       return errorResponse('无权限访问', 403);
     }
 
@@ -45,40 +45,47 @@ export async function GET(request: NextRequest) {
 
     const db = sql;
 
+    // Get leader's department if not admin
+    let leaderDepartmentId: string | null = null;
+    if (currentUser.role === 'leader') {
+      const leaderResult = await db`
+        SELECT department_id FROM users WHERE id = ${currentUser.userId}
+      ` as { department_id: string | null }[];
+      leaderDepartmentId = leaderResult[0]?.department_id || null;
+    }
+
+    // Build WHERE clause based on role
+    const isAdmin = currentUser.role === 'admin';
+    const roleFilter = role ? db`AND u.role = ${role}` : db``;
+    const statusFilter = status ? db`AND u.status = ${status}` : db``;
+    // Leaders can only see users from their department
+    const deptFilter = !isAdmin && leaderDepartmentId
+      ? db`AND u.department_id = ${leaderDepartmentId}`
+      : departmentId ? db`AND u.department_id = ${departmentId}` : db``;
+
     // Get total count
     const countResult = await db`
-      SELECT COUNT(*) as count FROM users
+      SELECT COUNT(*) as count FROM users u
       WHERE 1=1
-      ${role ? db`AND role = ${role}` : db``}
-      ${status ? db`AND status = ${status}` : db``}
-      ${departmentId ? db`AND department_id = ${departmentId}` : db``}
+      ${roleFilter}
+      ${statusFilter}
+      ${deptFilter}
     ` as { count: string }[];
     const total = parseInt(countResult[0].count);
 
-    let result: UserRow[];
-    if (role || status || departmentId) {
-      result = await db`
-        SELECT u.id, u.username, u.name, u.role, u.status, u.department_id,
-               d.name as department_name, u.created_at
-        FROM users u
-        LEFT JOIN departments d ON u.department_id = d.id
-        WHERE 1=1
-        ${role ? db`AND u.role = ${role}` : db``}
-        ${status ? db`AND u.status = ${status}` : db``}
-        ${departmentId ? db`AND u.department_id = ${departmentId}` : db``}
-        ORDER BY u.created_at DESC
-        LIMIT ${limit} OFFSET ${offset}
-      ` as UserRow[];
-    } else {
-      result = await db`
-        SELECT u.id, u.username, u.name, u.role, u.status, u.department_id,
-               d.name as department_name, u.created_at
-        FROM users u
-        LEFT JOIN departments d ON u.department_id = d.id
-        ORDER BY u.created_at DESC
-        LIMIT ${limit} OFFSET ${offset}
-      ` as UserRow[];
-    }
+    // Get users
+    const result = await db`
+      SELECT u.id, u.username, u.name, u.role, u.status, u.department_id,
+             d.name as department_name, u.created_at
+      FROM users u
+      LEFT JOIN departments d ON u.department_id = d.id
+      WHERE 1=1
+      ${roleFilter}
+      ${statusFilter}
+      ${deptFilter}
+      ORDER BY u.created_at DESC
+      LIMIT ${limit} OFFSET ${offset}
+    ` as UserRow[];
 
     const users: UserResponse[] = result.map((row) => ({
       id: row.id,
@@ -115,6 +122,11 @@ export async function POST(request: NextRequest) {
 
     if (!username || !password || !name) {
       return errorResponse('用户名、密码和姓名不能为空', 400);
+    }
+
+    // Validate password length (SRS-04 requires minimum 6 characters)
+    if (password.length < 6) {
+      return errorResponse('密码长度不能少于6位', 400);
     }
 
     const db = sql;

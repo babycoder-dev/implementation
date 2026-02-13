@@ -51,16 +51,14 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       if (deptExists.length === 0) return errorResponse('部门不存在', 400);
     }
     const updates: string[] = [];
-    const values: unknown[] = [];
-    if (username) { updates.push('username = ?'); values.push(username); }
-    if (password) { updates.push('password_hash = ?'); values.push(await bcrypt.hash(password, 10)); }
-    if (name) { updates.push('name = ?'); values.push(name); }
-    if (role) { updates.push('role = ?'); values.push(role); }
-    if (status) { updates.push('status = ?'); values.push(status); }
-    if (department_id !== undefined) { updates.push('department_id = ?'); values.push(department_id); }
+    if (username) { updates.push(`username = '${username.replace(/'/g, "''")}'`); }
+    if (password) { updates.push(`password_hash = '${(await bcrypt.hash(password, 10)).replace(/'/g, "''")}'`); }
+    if (name) { updates.push(`name = '${name.replace(/'/g, "''")}'`); }
+    if (role) { updates.push(`role = '${role}'`); }
+    if (status) { updates.push(`status = '${status}'`); }
+    if (department_id !== undefined) { updates.push(`department_id = ${department_id ? "'" + department_id + "'" : 'NULL'}`); }
     if (updates.length === 0) return errorResponse('没有要更新的字段', 400);
-    values.push(userId);
-    await sql`UPDATE users SET ${updates.join(', ')} WHERE id = ${userId}`;
+    await sql.unsafe`UPDATE users SET ${sql.unsafe(updates.join(', '))}, updated_at = NOW() WHERE id = ${userId}`;
     const result = await sql`
       SELECT u.id, u.username, u.name, u.role, u.status, u.department_id, d.name as department_name
       FROM users u LEFT JOIN departments d ON u.department_id = d.id WHERE u.id = ${userId}

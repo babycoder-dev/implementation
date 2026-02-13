@@ -3,9 +3,20 @@ import { hash, compare } from 'bcryptjs';
 import { cookies } from 'next/headers';
 
 // 导出 JWT 密钥供其他模块使用
-export const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'learning-management-system-secret-key-2024'
-);
+// 警告：如果未设置 JWT_SECRET，生产环境应该报错
+const getJwtSecret = () => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('JWT_SECRET environment variable is required in production');
+    }
+    console.warn('WARNING: Using default JWT_SECRET. Set JWT_SECRET in production!');
+    return 'learning-management-system-secret-key-2024-development-only';
+  }
+  return secret;
+};
+
+export const JWT_SECRET = new TextEncoder().encode(getJwtSecret());
 
 const JWT_EXPIRY = '7d';
 const SALT_ROUNDS = 10;
