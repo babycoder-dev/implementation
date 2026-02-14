@@ -183,4 +183,147 @@ describe('POST /api/quiz/questions - Admin Permission', () => {
     expect(data.success).toBe(false)
     expect(data.error).toBe('无权访问此任务')
   })
+
+  it('should return 400 when missing required fields', async () => {
+    const { validateRequest } = await import('@/lib/auth/middleware')
+    vi.mocked(validateRequest).mockResolvedValue({ userId: 'user-id' })
+
+    const request = new Request(
+      'http://localhost:3000/api/quiz/questions',
+      {
+        method: 'POST',
+        headers: {
+          cookie: 'session-token=valid-token',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          taskId: '660e8400-e29b-41d4-a716-446655440000',
+          // missing question, options, correctAnswer
+        }),
+      }
+    )
+
+    const response = await POST(request as any)
+    const data = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(data.success).toBe(false)
+    expect(data.error).toBe('缺少必要参数')
+  })
+
+  it('should return 400 when options is not array', async () => {
+    const { validateRequest } = await import('@/lib/auth/middleware')
+    vi.mocked(validateRequest).mockResolvedValue({ userId: 'user-id' })
+
+    const request = new Request(
+      'http://localhost:3000/api/quiz/questions',
+      {
+        method: 'POST',
+        headers: {
+          cookie: 'session-token=valid-token',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          taskId: '660e8400-e29b-41d4-a716-446655440000',
+          question: 'What is 2 + 2?',
+          options: 'not-an-array',
+          correctAnswer: 1,
+        }),
+      }
+    )
+
+    const response = await POST(request as any)
+    const data = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(data.success).toBe(false)
+    expect(data.error).toBe('选项必须为4个')
+  })
+
+  it('should return 400 when options length is not 4', async () => {
+    const { validateRequest } = await import('@/lib/auth/middleware')
+    vi.mocked(validateRequest).mockResolvedValue({ userId: 'user-id' })
+
+    const request = new Request(
+      'http://localhost:3000/api/quiz/questions',
+      {
+        method: 'POST',
+        headers: {
+          cookie: 'session-token=valid-token',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          taskId: '660e8400-e29b-41d4-a716-446655440000',
+          question: 'What is 2 + 2?',
+          options: ['A', 'B', 'C'],
+          correctAnswer: 1,
+        }),
+      }
+    )
+
+    const response = await POST(request as any)
+    const data = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(data.success).toBe(false)
+    expect(data.error).toBe('选项必须为4个')
+  })
+
+  it('should return 400 when correctAnswer out of range', async () => {
+    const { validateRequest } = await import('@/lib/auth/middleware')
+    vi.mocked(validateRequest).mockResolvedValue({ userId: 'user-id' })
+
+    const request = new Request(
+      'http://localhost:3000/api/quiz/questions',
+      {
+        method: 'POST',
+        headers: {
+          cookie: 'session-token=valid-token',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          taskId: '660e8400-e29b-41d4-a716-446655440000',
+          question: 'What is 2 + 2?',
+          options: ['3', '4', '5', '6'],
+          correctAnswer: 5, // out of range 0-3
+        }),
+      }
+    )
+
+    const response = await POST(request as any)
+    const data = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(data.success).toBe(false)
+    expect(data.error).toBe('正确答案索引必须在0-3之间')
+  })
+
+  it('should return 400 when correctAnswer is negative', async () => {
+    const { validateRequest } = await import('@/lib/auth/middleware')
+    vi.mocked(validateRequest).mockResolvedValue({ userId: 'user-id' })
+
+    const request = new Request(
+      'http://localhost:3000/api/quiz/questions',
+      {
+        method: 'POST',
+        headers: {
+          cookie: 'session-token=valid-token',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          taskId: '660e8400-e29b-41d4-a716-446655440000',
+          question: 'What is 2 + 2?',
+          options: ['3', '4', '5', '6'],
+          correctAnswer: -1,
+        }),
+      }
+    )
+
+    const response = await POST(request as any)
+    const data = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(data.success).toBe(false)
+    expect(data.error).toBe('正确答案索引必须在0-3之间')
+  })
 })
