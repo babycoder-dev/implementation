@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/db'
-import { quizAnswers, quizQuestions } from '@/db/schema'
+import { quizAnswers, quizQuestions, tasks, quizSubmissions } from '@/db/schema'
 import { validateRequest } from '@/lib/auth/middleware'
 import { ZodError, z } from 'zod'
-import { eq, inArray } from 'drizzle-orm'
+import { eq, inArray, and } from 'drizzle-orm'
 
 const submitSchema = z.object({
   taskId: z.string().uuid(),
@@ -26,6 +26,60 @@ export async function POST(request: NextRequest) {
     if (answers.length === 0) {
       return NextResponse.json(
         { success: false, error: '没有答案可提交' },
+        { status: 400 }
+      )
+    }
+
+    // Fetch task to get passingScore and strictMode
+    const taskResult = await db
+      .select({
+        id: tasks.id,
+        passingScore: tasks.passingScore,
+        strictMode: tasks.strictMode,
+      })
+      .from(tasks)
+      .where(eq(tasks.id, taskId))
+
+    if (taskResult.length === 0) {
+      return NextResponse.json(
+        { success: false, error: '任务不存在' },
+        { status: 400 }
+      )
+    }
+
+    const task = taskResult[0]
+    const passingScore = task.passingScore ?? 100
+    const strictMode = task.strictMode ?? true
+
+    // Fetch user's submissions for this task
+    const existingSubmissions = await db
+      .select({
+        id: quizSubmissions.id,
+        passed: quizSubmissions.passed,
+        attemptCount: quizSubmissions.attemptCount,
+      })
+      .from(quizSubmissions)
+      .where(
+        and(
+          eq(quizSubmissions.taskId, taskId),
+          eq(quizSubmissions.userId, auth.userId)
+        )
+      )
+
+    // Check if user has already passed
+    const hasPassed = existingSubmissions.some(s => s.passed)
+    if (hasPassed) {
+      return NextResponse.json(
+        { success: false, error: '已达到及格分数' },
+        { status: 400 }
+      )
+    }
+
+    // Check submission limit (max 3 attempts)
+    const attemptCount = existingSubmissions.length
+    if (attemptCount >= 3) {
+      return NextResponse.json(
+        { success: false, error: '提交次数已用完' },
         { status: 400 }
       )
     }
@@ -101,11 +155,32 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    // Calculate passing status
+    const scorePercentage = (correctCount / answers.length) * 100
+    const passed = strictMode
+      ? scorePercentage === 100
+      : scorePercentage >= passingScore
+
+    // Record submission to quizSubmissions table
+    const submissionRecord = {
+      taskId,
+      userId: auth.userId,
+      score: scorePercentage.toFixed(2),
+      passed,
+      totalQuestions: answers.length,
+      correctAnswers: correctCount,
+      attemptCount: attemptCount + 1,
+      answers: answersResult,
+    }
+
+    await db.insert(quizSubmissions).values(submissionRecord)
+
     return NextResponse.json({
       success: true,
       data: {
         score: correctCount,
         total: answers.length,
+        passed,
         answers: answersResult,
       },
     })
