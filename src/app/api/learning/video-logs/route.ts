@@ -1,13 +1,7 @@
 import { NextRequest } from 'next/server';
-import { neon } from '@neondatabase/serverless';
+import { sql } from '@/lib/db';
 import { getUserFromHeaders } from '@/lib/auth';
 import { successResponse, errorResponse } from '@/lib/api-response';
-
-const databaseUrl = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/learning_system';
-
-function getDb() {
-  return neon(databaseUrl);
-}
 
 interface VideoLogRow {
   id: string;
@@ -43,7 +37,7 @@ export async function POST(request: NextRequest) {
       return errorResponse('文件ID和操作类型不能为空', 400);
     }
 
-    const db = getDb();
+    const db = sql;
 
     const result = await db`
       INSERT INTO video_logs (user_id, file_id, action, current_time, playback_speed)
@@ -80,7 +74,7 @@ export async function GET(request: NextRequest) {
     const fileId = searchParams.get('fileId');
     const limit = parseInt(searchParams.get('limit') || '100');
 
-    const db = getDb();
+    const db = sql;
 
     const logs = await db`
       SELECT *

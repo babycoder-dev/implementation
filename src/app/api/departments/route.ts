@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { sql } from '@/lib/db';
 import { getUserFromHeaders } from '@/lib/auth';
+import { successResponse, errorResponse } from '@/lib/api-response';
 import { z } from 'zod';
 
 // Helper to safely convert undefined to null for SQL
@@ -23,18 +24,12 @@ export async function GET(request: NextRequest) {
     // Validate authentication from headers set by middleware
     const currentUser = getUserFromHeaders(request);
     if (!currentUser) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return errorResponse('未登录', 401);
     }
 
     // Only admins can manage departments, but leaders can view departments
     if (currentUser.role !== 'admin' && currentUser.role !== 'leader') {
-      return NextResponse.json(
-        { success: false, error: 'Forbidden' },
-        { status: 403 }
-      );
+      return errorResponse('无权限访问', 403);
     }
 
     const { searchParams } = new URL(request.url);
@@ -70,10 +65,7 @@ export async function GET(request: NextRequest) {
         }));
       };
 
-      return NextResponse.json({
-        success: true,
-        data: buildTree(result)
-      });
+      return successResponse(buildTree(result));
     }
 
     // Get flat list with user count
@@ -84,16 +76,10 @@ export async function GET(request: NextRequest) {
       ORDER BY d.name
     `;
 
-    return NextResponse.json({
-      success: true,
-      data: departments
-    });
+    return successResponse(departments);
   } catch (error) {
     console.error('Error fetching departments:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch departments' },
-      { status: 500 }
-    );
+    return errorResponse('获取部门列表失败', 500);
   }
 }
 
@@ -110,18 +96,12 @@ export async function POST(request: NextRequest) {
     // Validate authentication
     const currentUser = getUserFromHeaders(request);
     if (!currentUser) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return errorResponse('未登录', 401);
     }
 
     // Only admins can create departments
     if (currentUser.role !== 'admin') {
-      return NextResponse.json(
-        { success: false, error: 'Forbidden' },
-        { status: 403 }
-      );
+      return errorResponse('无权限访问', 403);
     }
 
     const body = await request.json();
@@ -131,10 +111,7 @@ export async function POST(request: NextRequest) {
     if (validated.parent_id) {
       const parentExists = await sql`SELECT id FROM departments WHERE id = ${validated.parent_id}`;
       if (parentExists.length === 0) {
-        return NextResponse.json(
-          { success: false, error: '上级部门不存在' },
-          { status: 400 }
-        );
+        return errorResponse('上级部门不存在', 400);
       }
     }
 
@@ -142,10 +119,7 @@ export async function POST(request: NextRequest) {
     if (validated.leader_id) {
       const leaderExists = await sql`SELECT id, department_id FROM users WHERE id = ${validated.leader_id}`;
       if (leaderExists.length === 0) {
-        return NextResponse.json(
-          { success: false, error: '部门负责人不存在' },
-          { status: 400 }
-        );
+        return errorResponse('部门负责人不存在', 400);
       }
     }
 
@@ -166,10 +140,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (existing.length > 0) {
-      return NextResponse.json(
-        { success: false, error: '同级部门中已存在相同名称' },
-        { status: 400 }
-      );
+      return errorResponse('同级部门中已存在相同名称', 400);
     }
 
     // Use tagged template literal with proper null handling
@@ -190,22 +161,13 @@ export async function POST(request: NextRequest) {
       RETURNING *
     `;
 
-    return NextResponse.json({
-      success: true,
-      data: result[0]
-    }, { status: 201 });
+    return successResponse(result[0], { message: '部门创建成功' }, 201);
   } catch (error) {
     if (error instanceof Error && error.name === 'ZodError') {
       const zodError = error as unknown as { errors: Array<{ message: string }> };
-      return NextResponse.json(
-        { success: false, error: zodError.errors?.[0]?.message || 'Validation error' },
-        { status: 400 }
-      );
+      return errorResponse(zodError.errors?.[0]?.message || 'Validation error', 400);
     }
     console.error('Error creating department:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to create department' },
-      { status: 500 }
-    );
+    return errorResponse('创建部门失败', 500);
   }
 }

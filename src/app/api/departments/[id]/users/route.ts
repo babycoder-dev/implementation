@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { sql } from '@/lib/db';
 import { getUserFromHeaders } from '@/lib/auth';
+import { successResponse, errorResponse } from '@/lib/api-response';
 
 // GET /api/departments/[id]/users - Get users in a department
 export async function GET(
@@ -10,7 +11,7 @@ export async function GET(
   try {
     const currentUser = getUserFromHeaders(request);
     if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'leader')) {
-      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+      return errorResponse('无权限访问', 403);
     }
 
     const { id: departmentId } = await params;
@@ -19,7 +20,7 @@ export async function GET(
     if (currentUser.role === 'leader') {
       const leaderDept = await sql`SELECT department_id FROM users WHERE id = ${currentUser.userId}` as { department_id: string | null }[];
       if (leaderDept[0]?.department_id !== departmentId) {
-        return NextResponse.json({ success: false, error: '只能查看本部门用户' }, { status: 403 });
+        return errorResponse('只能查看本部门用户', 403);
       }
     }
 
@@ -30,10 +31,10 @@ export async function GET(
       ORDER BY created_at DESC
     `;
 
-    return NextResponse.json({ success: true, data: users });
+    return successResponse(users);
   } catch (error) {
     console.error('Error fetching department users:', error);
-    return NextResponse.json({ success: false, error: 'Failed to fetch department users' }, { status: 500 });
+    return errorResponse('获取部门用户列表失败', 500);
   }
 }
 
@@ -45,7 +46,7 @@ export async function POST(
   try {
     const currentUser = getUserFromHeaders(request);
     if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'leader')) {
-      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+      return errorResponse('无权限访问', 403);
     }
 
     const { id: departmentId } = await params;
@@ -54,32 +55,32 @@ export async function POST(
     if (currentUser.role === 'leader') {
       const leaderDept = await sql`SELECT department_id FROM users WHERE id = ${currentUser.userId}` as { department_id: string | null }[];
       if (leaderDept[0]?.department_id !== departmentId) {
-        return NextResponse.json({ success: false, error: '只能管理本部门用户' }, { status: 403 });
+        return errorResponse('只能管理本部门用户', 403);
       }
     }
 
     const { user_id } = await request.json();
 
     if (!user_id) {
-      return NextResponse.json({ success: false, error: 'User ID is required' }, { status: 400 });
+      return errorResponse('用户ID不能为空', 400);
     }
 
     const deptExists = await sql`SELECT id FROM departments WHERE id = ${departmentId}`;
     if (deptExists.length === 0) {
-      return NextResponse.json({ success: false, error: 'Department not found' }, { status: 404 });
+      return errorResponse('部门不存在', 404);
     }
 
     const userExists = await sql`SELECT id FROM users WHERE id = ${user_id}`;
     if (userExists.length === 0) {
-      return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
+      return errorResponse('用户不存在', 404);
     }
 
     await sql`UPDATE users SET department_id = ${departmentId} WHERE id = ${user_id}`;
 
-    return NextResponse.json({ success: true, message: 'User added to department' });
+    return successResponse(null, { message: '用户已添加到部门' });
   } catch (error) {
     console.error('Error adding user to department:', error);
-    return NextResponse.json({ success: false, error: 'Failed to add user to department' }, { status: 500 });
+    return errorResponse('添加用户到部门失败', 500);
   }
 }
 
@@ -91,7 +92,7 @@ export async function DELETE(
   try {
     const currentUser = getUserFromHeaders(request);
     if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'leader')) {
-      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+      return errorResponse('无权限访问', 403);
     }
 
     const { id: departmentId } = await params;
@@ -100,31 +101,31 @@ export async function DELETE(
     if (currentUser.role === 'leader') {
       const leaderDept = await sql`SELECT department_id FROM users WHERE id = ${currentUser.userId}` as { department_id: string | null }[];
       if (leaderDept[0]?.department_id !== departmentId) {
-        return NextResponse.json({ success: false, error: '只能管理本部门用户' }, { status: 403 });
+        return errorResponse('只能管理本部门用户', 403);
       }
     }
 
     const { user_id } = await request.json();
 
     if (!user_id) {
-      return NextResponse.json({ success: false, error: 'User ID is required' }, { status: 400 });
+      return errorResponse('用户ID不能为空', 400);
     }
 
     // Verify user belongs to this department
     const userDept = await sql`SELECT department_id FROM users WHERE id = ${user_id}`;
     if (userDept.length === 0) {
-      return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
+      return errorResponse('用户不存在', 404);
     }
     if (userDept[0].department_id !== departmentId) {
-      return NextResponse.json({ success: false, error: 'User not in this department' }, { status: 404 });
+      return errorResponse('用户不在此部门中', 404);
     }
 
     // Remove user from department (set department_id to null)
     await sql`UPDATE users SET department_id = NULL WHERE id = ${user_id}`;
 
-    return NextResponse.json({ success: true, message: 'User removed from department' });
+    return successResponse(null, { message: '用户已从部门移除' });
   } catch (error) {
     console.error('Error removing user from department:', error);
-    return NextResponse.json({ success: false, error: 'Failed to remove user from department' }, { status: 500 });
+    return errorResponse('从部门移除用户失败', 500);
   }
 }

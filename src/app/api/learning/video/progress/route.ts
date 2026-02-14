@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { neon } from '@neondatabase/serverless';
+import { sql } from '@/lib/db';
 import { videoValidator, VideoValidationResult } from '@/lib/learning/video-validator';
-
-const databaseUrl = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/learning_system';
-
-function getDb() {
-  return neon(databaseUrl);
-}
 
 // Request body types
 interface VideoProgressRequest {
@@ -37,7 +31,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const db = getDb();
+    const db = sql;
 
     // Get video progress
     const progressResult = await db`
@@ -128,7 +122,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const db = getDb();
+    const db = sql;
 
     // Record the video log event
     const logResult = await db`
@@ -199,7 +193,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const db = getDb();
+    const db = sql;
 
     // Record finish event
     await db`

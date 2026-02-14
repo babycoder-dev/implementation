@@ -1,26 +1,23 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { PdfLearningValidator } from '../pdf-validator';
 
-// Mock @neondatabase/serverless
-vi.mock('@neondatabase/serverless', () => {
-  const mockDb = vi.fn();
+// Mock @/lib/db before importing
+vi.mock('@/lib/db', () => {
+  const mockSql = vi.fn();
   return {
-    neon: vi.fn(() => mockDb),
-    __mockDb: mockDb,
+    sql: mockSql,
   };
 });
 
-import { neon } from '@neondatabase/serverless';
+// Need to import after mock
+import { sql as mockDb } from '@/lib/db';
 
 describe('PdfLearningValidator', () => {
   let validator: PdfLearningValidator;
-  let mockDb: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     vi.resetAllMocks();
     validator = new PdfLearningValidator();
-    // Get the mock db function that was created in the constructor
-    mockDb = (neon as unknown as () => ReturnType<typeof vi.fn>)();
   });
 
   afterEach(() => {

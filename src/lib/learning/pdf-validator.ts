@@ -1,7 +1,5 @@
-import { neon } from '@neondatabase/serverless';
+import { sql } from '@/lib/db';
 import { PdfLearningLog } from '../types';
-
-const databaseUrl = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/learning_system';
 
 // Validation result interface
 export interface PdfValidationResult {
@@ -45,11 +43,6 @@ interface TimestampResult {
  */
 export class PdfLearningValidator {
   private readonly MIN_DURATION_MINUTES = 5;
-  private readonly db: ReturnType<typeof neon>;
-
-  constructor() {
-    this.db = neon(databaseUrl);
-  }
 
   /**
    * Validate PDF learning completion for a user and file
@@ -87,7 +80,7 @@ export class PdfLearningValidator {
    * Check if the file was opened by the user
    */
   private async checkFileOpened(fileId: string, userId: string): Promise<boolean> {
-    const result = await this.db`
+    const result = await sql`
       SELECT COUNT(*) as count
       FROM learning_logs
       WHERE user_id = ${userId}
@@ -104,7 +97,7 @@ export class PdfLearningValidator {
    */
   private async calculateDuration(fileId: string, userId: string): Promise<number> {
     // Get all logs for this file and user, ordered by timestamp
-    const logs = await this.db`
+    const logs = await sql`
       SELECT timestamp
       FROM learning_logs
       WHERE user_id = ${userId}
@@ -131,7 +124,7 @@ export class PdfLearningValidator {
    */
   private async checkReachedLastPage(fileId: string, userId: string): Promise<boolean> {
     // Get total pages for the file
-    const fileInfo = await this.db`
+    const fileInfo = await sql`
       SELECT total_pages
       FROM task_files
       WHERE id = ${fileId}
@@ -139,7 +132,7 @@ export class PdfLearningValidator {
 
     if (fileInfo.length === 0 || !fileInfo[0]?.total_pages) {
       // If we can't get file info, check if any page logs exist
-      const pageLogs = await this.db`
+      const pageLogs = await sql`
         SELECT page_num
         FROM learning_logs
         WHERE user_id = ${userId}
@@ -155,7 +148,7 @@ export class PdfLearningValidator {
     const totalPages = fileInfo[0].total_pages;
 
     // Get the maximum page number the user has viewed
-    const maxPageResult = await this.db`
+    const maxPageResult = await sql`
       SELECT MAX(page_num) as max_page
       FROM learning_logs
       WHERE user_id = ${userId}
@@ -179,7 +172,7 @@ export class PdfLearningValidator {
     firstAccess: Date | null;
     lastAccess: Date | null;
   }> {
-    const logs = await this.db`
+    const logs = await sql`
       SELECT *
       FROM learning_logs
       WHERE user_id = ${userId}
@@ -187,13 +180,13 @@ export class PdfLearningValidator {
       ORDER BY timestamp ASC
     ` as PdfLearningLog[];
 
-    const fileInfo = await this.db`
+    const fileInfo = await sql`
       SELECT total_pages
       FROM task_files
       WHERE id = ${fileId}
     ` as FilePageInfo[];
 
-    const maxPageResult = await this.db`
+    const maxPageResult = await sql`
       SELECT MAX(page_num) as max_page
       FROM learning_logs
       WHERE user_id = ${userId}

@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { sql } from '@/lib/db';
 import { getUserFromHeaders } from '@/lib/auth';
+import { successResponse, errorResponse } from '@/lib/api-response';
 import { z } from 'zod';
 
 const updateDepartmentSchema = z.object({
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   try {
     const currentUser = getUserFromHeaders(request);
     if (!currentUser || currentUser.role !== 'admin') {
-      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+      return errorResponse('无权限访问', 403);
     }
     const { id: departmentId } = await params;
     const result = await sql`
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       FROM departments d WHERE d.id = ${departmentId}
     `;
     if (result.length === 0) {
-      return NextResponse.json({ success: false, error: 'Department not found' }, { status: 404 });
+      return errorResponse('部门不存在', 404);
     }
 
     // Get department members
@@ -33,16 +34,13 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       ORDER BY created_at DESC
     `;
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        ...result[0],
-        members: members
-      }
+    return successResponse({
+      ...result[0],
+      members: members
     });
   } catch (error) {
     console.error('Error fetching department:', error);
-    return NextResponse.json({ success: false, error: 'Failed to fetch department' }, { status: 500 });
+    return errorResponse('获取部门详情失败', 500);
   }
 }
 
@@ -50,17 +48,17 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   try {
     const currentUser = getUserFromHeaders(request);
     if (!currentUser || currentUser.role !== 'admin') {
-      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+      return errorResponse('无权限访问', 403);
     }
     const { id: departmentId } = await params;
     const body = await request.json();
     const validated = updateDepartmentSchema.parse(body);
     const existing = await sql`SELECT id, parent_id FROM departments WHERE id = ${departmentId}`;
     if (existing.length === 0) {
-      return NextResponse.json({ success: false, error: 'Department not found' }, { status: 404 });
+      return errorResponse('部门不存在', 404);
     }
     if (validated.parent_id === departmentId) {
-      return NextResponse.json({ success: false, error: '部门不能设置自己为上级部门' }, { status: 400 });
+      return errorResponse('部门不能设置自己为上级部门', 400);
     }
 
     // Get current values
@@ -69,7 +67,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     `;
 
     if (currentDept.length === 0) {
-      return NextResponse.json({ success: false, error: 'Department not found' }, { status: 404 });
+      return errorResponse('部门不存在', 404);
     }
 
     const current = currentDept[0];
@@ -103,7 +101,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     if (updates.length === 0) {
-      return NextResponse.json({ success: false, error: '没有要更新的字段' }, { status: 400 });
+      return errorResponse('没有要更新的字段', 400);
     }
 
     values.push(departmentId);
@@ -111,14 +109,14 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const result = await sql.unsafe(updateSql, ...values) as Array<{ id: string; name: string; description: string | null; parent_id: string | null; leader_id: string | null; created_at: Date; updated_at: Date | null }>;
 
-    return NextResponse.json({ success: true, data: result[0], message: '部门更新成功' });
+    return successResponse(result[0], { message: '部门更新成功' });
   } catch (error) {
     if (error instanceof Error && error.name === 'ZodError') {
       const zodError = error as unknown as { errors: Array<{ message: string }> };
-      return NextResponse.json({ success: false, error: zodError.errors?.[0]?.message || 'Validation error' }, { status: 400 });
+      return errorResponse(zodError.errors?.[0]?.message || 'Validation error', 400);
     }
     console.error('Error updating department:', error);
-    return NextResponse.json({ success: false, error: 'Failed to update department' }, { status: 500 });
+    return errorResponse('更新部门失败', 500);
   }
 }
 
@@ -126,25 +124,25 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   try {
     const currentUser = getUserFromHeaders(request);
     if (!currentUser || currentUser.role !== 'admin') {
-      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+      return errorResponse('无权限访问', 403);
     }
     const { id: departmentId } = await params;
     const existing = await sql`SELECT id FROM departments WHERE id = ${departmentId}`;
     if (existing.length === 0) {
-      return NextResponse.json({ success: false, error: 'Department not found' }, { status: 404 });
+      return errorResponse('部门不存在', 404);
     }
     const children = await sql`SELECT id FROM departments WHERE parent_id = ${departmentId}`;
     if (children.length > 0) {
-      return NextResponse.json({ success: false, error: '请先删除子部门' }, { status: 400 });
+      return errorResponse('请先删除子部门', 400);
     }
     const users = await sql`SELECT id FROM users WHERE department_id = ${departmentId}`;
     if (users.length > 0) {
-      return NextResponse.json({ success: false, error: '请先将部门用户移至其他部门' }, { status: 400 });
+      return errorResponse('请先将部门用户移至其他部门', 400);
     }
     await sql`DELETE FROM departments WHERE id = ${departmentId}`;
-    return NextResponse.json({ success: true, message: '部门删除成功' });
+    return successResponse(null, { message: '部门删除成功' });
   } catch (error) {
     console.error('Error deleting department:', error);
-    return NextResponse.json({ success: false, error: 'Failed to delete department' }, { status: 500 });
+    return errorResponse('删除部门失败', 500);
   }
 }

@@ -1,13 +1,7 @@
 import { NextRequest } from 'next/server';
-import { neon } from '@neondatabase/serverless';
+import { sql } from '@/lib/db';
 import { getUserFromHeaders } from '@/lib/auth';
 import { successResponse, errorResponse } from '@/lib/api-response';
-
-const databaseUrl = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/learning_system';
-
-function getDb() {
-  return neon(databaseUrl);
-}
 
 interface VideoProgressRow {
   id: string;
@@ -41,7 +35,7 @@ export async function POST(request: NextRequest) {
       return errorResponse('文件ID和当前时间不能为空', 400);
     }
 
-    const db = getDb();
+    const db = sql;
 
     // Upsert video progress
     const result = await db`
@@ -82,7 +76,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const fileId = searchParams.get('fileId');
 
-    const db = getDb();
+    const db = sql;
 
     const progress = await db`
       SELECT *

@@ -5,8 +5,9 @@ import { NextRequest } from 'next/server';
 const mockQueryFn = vi.fn();
 const mockVideoValidate = vi.fn();
 
-vi.mock('@neondatabase/serverless', () => ({
-  neon: vi.fn(() => mockQueryFn),
+vi.mock('@/lib/db', () => ({
+  sql: mockQueryFn,
+  database: mockQueryFn,
 }));
 
 vi.mock('../../../../lib/learning/video-validator', async () => {
