@@ -176,6 +176,17 @@ describe('PUT /api/users/[id]', () => {
     expect(response.status).toBe(403);
   });
 
+  it('should return 403 if non-admin tries to change status', async () => {
+    mockGetUserFromHeaders.mockReturnValue({ userId: 'leader-1', role: 'leader' });
+    mockSql.mockImplementation(() => [{ id: 'user-1', department_id: 'dept-1' }]);
+    const request = new NextRequest('http://localhost/api/users/user-1', {
+      method: 'PUT',
+      body: JSON.stringify({ status: 'disabled' }),
+    });
+    const response = await PUT(request, { params: Promise.resolve({ id: 'user-1' }) });
+    expect(response.status).toBe(403);
+  });
+
   it('should return 400 if no fields to update', async () => {
     mockGetUserFromHeaders.mockReturnValue({ userId: 'admin-1', role: 'admin' });
     mockSql.mockImplementation(() => [{ id: 'user-1', department_id: null }]);
@@ -205,6 +216,27 @@ describe('PUT /api/users/[id]', () => {
     });
     const response = await PUT(request, { params: Promise.resolve({ id: 'user-1' }) });
     expect(response.status).toBe(409);
+  });
+
+
+  it('should deny leader to update user in other department', async () => {
+    mockGetUserFromHeaders.mockReturnValue({ userId: 'leader-1', role: 'leader' });
+    mockSql.mockImplementation((strings: TemplateStringsArray) => {
+      const queryStr = strings[0];
+      if (queryStr.includes('SELECT id, department_id FROM users WHERE id')) {
+        return [{ id: 'user-1', department_id: 'dept-2' }];
+      }
+      if (queryStr.includes('SELECT department_id FROM users WHERE id') && queryStr.includes('leader')) {
+        return [{ department_id: 'dept-1' }];
+      }
+      return [];
+    });
+    const request = new NextRequest('http://localhost/api/users/user-1', {
+      method: 'PUT',
+      body: JSON.stringify({ name: 'Updated' }),
+    });
+    const response = await PUT(request, { params: Promise.resolve({ id: 'user-1' }) });
+    expect(response.status).toBe(403);
   });
 });
 
