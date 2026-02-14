@@ -14,10 +14,21 @@ const updateDepartmentSchema = z.object({
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const currentUser = getUserFromHeaders(request);
-    if (!currentUser || currentUser.role !== 'admin') {
+    if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'leader')) {
       return errorResponse('无权限访问', 403);
     }
     const { id: departmentId } = await params;
+
+    // Leaders can only view their own department
+    if (currentUser.role === 'leader') {
+      const leaderDept = await sql`
+        SELECT department_id FROM users WHERE id = ${currentUser.userId}
+      ` as { department_id: string | null }[];
+      if (leaderDept[0]?.department_id !== departmentId) {
+        return errorResponse('无权限访问', 403);
+      }
+    }
+
     const result = await sql`
       SELECT d.*, (SELECT COUNT(*) FROM users u WHERE u.department_id = d.id) as user_count
       FROM departments d WHERE d.id = ${departmentId}
