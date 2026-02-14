@@ -31,6 +31,11 @@ export async function POST(request: NextRequest) {
       return errorResponse('用户名和密码必填', 400);
     }
 
+    // 验证密码长度 (最少6位)
+    if (password.length < 6) {
+      return errorResponse('密码至少6位', 400);
+    }
+
     // Check if account is locked due to too many failed attempts (SRS-04)
     if (await isAccountLocked(username)) {
       const remainingSeconds = await getRemainingLockTime(username);

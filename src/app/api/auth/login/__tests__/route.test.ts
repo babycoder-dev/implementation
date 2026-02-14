@@ -162,7 +162,7 @@ describe('POST /api/auth/login', () => {
 
     const request = new NextRequest('http://localhost/api/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ username: 'demo', password: 'wrong' }),
+      body: JSON.stringify({ username: 'demo', password: 'wrongpw' }),
     });
 
     const response = await POST(request);
