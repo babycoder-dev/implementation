@@ -68,17 +68,17 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     const totalQuestions = questionCountResult[0]?.count ?? 0
 
-    // Get questions list (only when explicitly requested via query param)
+    // Get questions list (only admin can see questions with correctAnswer)
     const includeQuestions = new URL(request.url).searchParams.get('includeQuestions') === 'true'
     let questions: Array<{
       id: string
       question: string
       options: unknown[]
-      correctAnswer: number
+      correctAnswer?: number
       order: number
       createdAt: Date
     }> = []
-    if (includeQuestions) {
+    if (includeQuestions && currentUser?.role === 'admin') {
       try {
         questions = await db
           .select({

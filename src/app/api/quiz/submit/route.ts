@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/db'
 import { transaction } from '@/db/transaction'
-import { quizAnswers, quizQuestions, tasks, quizSubmissions } from '@/db/schema'
+import { quizAnswers, quizQuestions, tasks, quizSubmissions, taskAssignments, users } from '@/db/schema'
 import { validateRequest } from '@/lib/auth/middleware'
 import { ZodError, z } from 'zod'
 import { eq, inArray, and } from 'drizzle-orm'
@@ -51,6 +51,36 @@ export async function POST(request: NextRequest) {
     const task = taskResult[0]
     const passingScore = task.passingScore ?? 100
     const strictMode = task.strictMode ?? false
+
+    // Check user role and task assignment
+    const [currentUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, auth.userId))
+      .limit(1)
+
+    const isAdmin = currentUser?.role === 'admin'
+
+    // Check if user has access to this task (admins can access all)
+    if (!isAdmin) {
+      const [assignment] = await db
+        .select()
+        .from(taskAssignments)
+        .where(
+          and(
+            eq(taskAssignments.taskId, taskId),
+            eq(taskAssignments.userId, auth.userId)
+          )
+        )
+        .limit(1)
+
+      if (!assignment) {
+        return NextResponse.json(
+          { success: false, error: '无权访问此任务' },
+          { status: 403 }
+        )
+      }
+    }
 
     // Fetch user's submissions for this task
     const existingSubmissions = await db
@@ -109,14 +139,17 @@ export async function POST(request: NextRequest) {
     // Create a map for quick lookup
     const questionMap = new Map(questions.map(q => [q.id, q]))
 
-    // Check for already answered questions
+    // Check for already answered questions (filter by current user)
     const answeredQuestions = await db
       .select({ questionId: quizAnswers.questionId })
       .from(quizAnswers)
       .where(
-        inArray(
-          quizAnswers.questionId,
-          answers.map(a => a.questionId)
+        and(
+          eq(quizAnswers.userId, auth.userId),
+          inArray(
+            quizAnswers.questionId,
+            answers.map(a => a.questionId)
+          )
         )
       )
 
