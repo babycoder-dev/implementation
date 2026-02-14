@@ -19,7 +19,7 @@ export const tasks = pgTable('tasks', {
   createdBy: uuid('created_by').references(() => users.id).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   passingScore: integer('passing_score').default(100),
-  strictMode: boolean('strict_mode').default(true),
+  strictMode: boolean('strict_mode').default(false),
 })
 
 // 任务文件表
