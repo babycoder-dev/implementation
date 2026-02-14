@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, integer, boolean, jsonb } from 'drizzle-orm/pg-core'
+import { pgTable, uuid, text, timestamp, integer, boolean, jsonb, numeric } from 'drizzle-orm/pg-core'
 
 // 用户表
 export const users = pgTable('users', {
@@ -48,6 +48,8 @@ export const quizQuestions = pgTable('quiz_questions', {
   question: text('question').notNull(),
   options: jsonb('options').notNull().$type<string[]>(),
   correctAnswer: integer('correct_answer').notNull(), // options 数组中的索引
+  order: integer('order').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 
 // 答题记录
@@ -96,7 +98,7 @@ export const quizSubmissions = pgTable('quiz_submissions', {
   id: uuid('id').defaultRandom().primaryKey(),
   taskId: uuid('task_id').references(() => tasks.id, { onDelete: 'cascade' }).notNull(),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
-  score: integer('score').notNull(),
+  score: numeric('score', { precision: 5, scale: 2 }).notNull(),
   passed: boolean('passed').notNull(),
   totalQuestions: integer('total_questions').notNull(),
   correctAnswers: integer('correct_answers').notNull(),

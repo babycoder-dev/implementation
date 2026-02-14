@@ -70,11 +70,12 @@ export async function POST(request: NextRequest) {
       // 创建题目
       if (validated.questions && validated.questions.length > 0) {
         await tx.insert(quizQuestions).values(
-          validated.questions.map((question) => ({
+          validated.questions.map((question, index) => ({
             taskId: createdTask.id,
             question: question.question,
             options: question.options,
             correctAnswer: question.correctAnswer,
+            order: question.order ?? index,
           }))
         )
       }

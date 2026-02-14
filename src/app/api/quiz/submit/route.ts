@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
 
     const task = taskResult[0]
     const passingScore = task.passingScore ?? 100
-    const strictMode = task.strictMode ?? true
+    const strictMode = task.strictMode ?? false
 
     // Fetch user's submissions for this task
     const existingSubmissions = await db
