@@ -37,6 +37,8 @@ export async function POST(request: NextRequest) {
           title: validated.title,
           description: validated.description,
           deadline: validated.deadline ? new Date(validated.deadline) : null,
+          passingScore: validated.passingScore,
+          strictMode: validated.strictMode,
           createdBy: auth.userId,
         })
         .returning()
