@@ -18,6 +18,8 @@ export const tasks = pgTable('tasks', {
   deadline: timestamp('deadline'),
   createdBy: uuid('created_by').references(() => users.id).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+  passingScore: integer('passing_score').default(100),
+  strictMode: boolean('strict_mode').default(true),
 })
 
 // 任务文件表
@@ -87,4 +89,18 @@ export const videoLogs = pgTable('video_logs', {
   action: text('action').notNull(), // play | pause | seek | finish
   currentTime: integer('current_time').notNull(),
   timestamp: timestamp('timestamp').defaultNow().notNull(),
+})
+
+// 测验提交记录
+export const quizSubmissions = pgTable('quiz_submissions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  taskId: uuid('task_id').references(() => tasks.id, { onDelete: 'cascade' }).notNull(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  score: integer('score').notNull(),
+  passed: boolean('passed').notNull(),
+  totalQuestions: integer('total_questions').notNull(),
+  correctAnswers: integer('correct_answers').notNull(),
+  attemptCount: integer('attempt_count').default(1).notNull(),
+  answers: jsonb('answers').notNull(),
+  submittedAt: timestamp('submitted_at').defaultNow().notNull(),
 })

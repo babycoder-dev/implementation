@@ -16,6 +16,8 @@ export const createTaskSchema = z.object({
     options: z.array(z.string()).min(2).max(6),
     correctAnswer: z.number().min(0),
   })).optional(),
+  passingScore: z.number().min(0).max(100).default(100),
+  strictMode: z.boolean().default(true),
 })
 
 export type CreateTaskInput = z.infer<typeof createTaskSchema>
