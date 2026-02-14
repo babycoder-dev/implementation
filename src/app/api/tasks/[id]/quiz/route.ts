@@ -68,6 +68,35 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     const totalQuestions = questionCountResult[0]?.count ?? 0
 
+    // Get questions list (only when explicitly requested via query param)
+    const includeQuestions = new URL(request.url).searchParams.get('includeQuestions') === 'true'
+    let questions: Array<{
+      id: string
+      question: string
+      options: unknown[]
+      correctAnswer: number
+      order: number
+      createdAt: Date
+    }> = []
+    if (includeQuestions) {
+      try {
+        questions = await db
+          .select({
+            id: quizQuestions.id,
+            question: quizQuestions.question,
+            options: quizQuestions.options,
+            correctAnswer: quizQuestions.correctAnswer,
+            order: quizQuestions.order,
+            createdAt: quizQuestions.createdAt,
+          })
+          .from(quizQuestions)
+          .where(eq(quizQuestions.taskId, taskId))
+          .orderBy(quizQuestions.order)
+      } catch {
+        questions = []
+      }
+    }
+
     // Get user's quiz submissions for this task
     const userSubmissions = await db
       .select()
@@ -88,6 +117,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         taskId: task.id,
         title: task.title,
         totalQuestions,
+        questions,
         passingScore: task.passingScore,
         strictMode: task.strictMode,
         userAttempts,
@@ -114,16 +144,31 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { question, options, correctAnswer } = body
 
     // Validate required fields
-    if (!question || !options || correctAnswer === undefined) {
+    if (!question || typeof question !== 'string' || question.trim().length === 0) {
       return NextResponse.json(
-        { success: false, error: '缺少必要参数: question, options, correctAnswer' },
+        { success: false, error: '题目不能为空' },
         { status: 400 }
       )
     }
 
-    if (!Array.isArray(options) || options.length !== 4) {
+    if (!options || !Array.isArray(options) || options.length !== 4) {
       return NextResponse.json(
         { success: false, error: '选项必须为4个' },
+        { status: 400 }
+      )
+    }
+
+    // Validate options are non-empty strings
+    if (!options.every(opt => typeof opt === 'string' && opt.trim().length > 0)) {
+      return NextResponse.json(
+        { success: false, error: '所有选项必须为非空字符串' },
+        { status: 400 }
+      )
+    }
+
+    if (correctAnswer === undefined || correctAnswer === null) {
+      return NextResponse.json(
+        { success: false, error: '缺少必要参数: question, options, correctAnswer' },
         { status: 400 }
       )
     }
@@ -199,7 +244,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({
       success: true,
       data: newQuestion,
-    })
+    }, { status: 201 })
   } catch (error) {
     console.error('创建题目失败:', error)
     return NextResponse.json(

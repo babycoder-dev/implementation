@@ -18,6 +18,11 @@ vi.mock('@/db', () => ({
   },
 }))
 
+// Mock transaction
+vi.mock('@/db/transaction', () => ({
+  transaction: vi.fn((callback) => callback(db)),
+}))
+
 // Mock authentication
 vi.mock('@/lib/auth/middleware', () => ({
   validateRequest: vi.fn(),

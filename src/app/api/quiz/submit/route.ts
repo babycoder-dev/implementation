@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/db'
+import { transaction } from '@/db/transaction'
 import { quizAnswers, quizQuestions, tasks, quizSubmissions } from '@/db/schema'
 import { validateRequest } from '@/lib/auth/middleware'
 import { ZodError, z } from 'zod'
@@ -126,7 +127,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Grade and insert answers
+    // Grade answers
     let correctCount = 0
     const answersToInsert = answers.map(a => {
       const question = questionMap.get(a.questionId)
@@ -140,28 +141,13 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    await db.insert(quizAnswers).values(answersToInsert)
-
-    const answersResult = answers.map(a => {
-      const question = questionMap.get(a.questionId)
-      const isCorrect = question ? a.answer === question.correctAnswer : false
-      return {
-        questionId: a.questionId,
-        question: question?.question || '',
-        options: question?.options || [],
-        userAnswer: a.answer,
-        correctAnswer: question?.correctAnswer ?? 0,
-        isCorrect,
-      }
-    })
-
     // Calculate passing status
     const scorePercentage = (correctCount / answers.length) * 100
     const passed = strictMode
       ? scorePercentage === 100
       : scorePercentage >= passingScore
 
-    // Record submission to quizSubmissions table
+    // Prepare submission record
     const submissionRecord = {
       taskId,
       userId: auth.userId,
@@ -170,10 +156,25 @@ export async function POST(request: NextRequest) {
       totalQuestions: answers.length,
       correctAnswers: correctCount,
       attemptCount: attemptCount + 1,
-      answers: answersResult,
+      answers: answers.map(a => {
+        const question = questionMap.get(a.questionId)
+        const isCorrect = question ? a.answer === question.correctAnswer : false
+        return {
+          questionId: a.questionId,
+          question: question?.question || '',
+          options: question?.options || [],
+          userAnswer: a.answer,
+          correctAnswer: question?.correctAnswer ?? 0,
+          isCorrect,
+        }
+      }),
     }
 
-    await db.insert(quizSubmissions).values(submissionRecord)
+    // Use transaction for atomic operation
+    await transaction(async (tx) => {
+      await tx.insert(quizAnswers).values(answersToInsert)
+      await tx.insert(quizSubmissions).values(submissionRecord)
+    })
 
     return NextResponse.json({
       success: true,
@@ -181,7 +182,7 @@ export async function POST(request: NextRequest) {
         score: correctCount,
         total: answers.length,
         passed,
-        answers: answersResult,
+        answers: submissionRecord.answers,
       },
     })
   } catch (error) {

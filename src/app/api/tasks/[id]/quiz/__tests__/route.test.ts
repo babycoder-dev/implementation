@@ -395,7 +395,7 @@ describe('POST /api/tasks/[id]/quiz', () => {
 
     expect(response.status).toBe(400)
     expect(data.success).toBe(false)
-    expect(data.error).toContain('缺少必要参数')
+    expect(data.error).toBe('选项必须为4个')
   })
 
   it('选项不是4个应返回400', async () => {
@@ -642,7 +642,7 @@ describe('POST /api/tasks/[id]/quiz', () => {
     const response = await POST(request, { params: Promise.resolve({ id: 'task-id' }) })
     const data = await response.json()
 
-    expect(response.status).toBe(200)
+    expect(response.status).toBe(201)
     expect(data.success).toBe(true)
     expect(data.data).toBeDefined()
     expect(data.data.question).toBe('Test question?')
@@ -725,7 +725,7 @@ describe('POST /api/tasks/[id]/quiz', () => {
     const response = await POST(request, { params: Promise.resolve({ id: 'task-id' }) })
     const data = await response.json()
 
-    expect(response.status).toBe(200)
+    expect(response.status).toBe(201)
     expect(data.success).toBe(true)
     expect(data.data.question).toBe('Admin question?')
   })

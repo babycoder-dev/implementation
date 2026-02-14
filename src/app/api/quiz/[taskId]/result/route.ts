@@ -64,7 +64,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       }
     }
 
-    // Get quiz statistics for this task
+    // Get quiz statistics for this task (filtered by user)
     const stats = await db
       .select({
         totalQuestions: sql<number>`COUNT(DISTINCT ${quizQuestions.id})`,
@@ -73,7 +73,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         lastAnsweredAt: sql<Date | null>`MAX(${quizAnswers.answeredAt})`,
       })
       .from(quizQuestions)
-      .leftJoin(quizAnswers, eq(quizAnswers.questionId, quizQuestions.id))
+      .leftJoin(
+        quizAnswers,
+        and(
+          eq(quizAnswers.questionId, quizQuestions.id),
+          eq(quizAnswers.userId, auth.userId)
+        )
+      )
       .where(eq(quizQuestions.taskId, taskId))
 
     const result = stats[0]
