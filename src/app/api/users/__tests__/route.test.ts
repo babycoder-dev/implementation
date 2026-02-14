@@ -207,4 +207,18 @@ describe('POST /api/users', () => {
     expect(response.status).toBe(201);
     expect(data.success).toBe(true);
   });
+
+  it('should return 400 if password is too short', async () => {
+    mockGetUserFromHeaders.mockReturnValue({ userId: 'admin-1', role: 'admin' });
+
+    const request = new NextRequest('http://localhost/api/users', {
+      method: 'POST',
+      body: JSON.stringify({ username: 'test', password: '12345', name: 'Test' }),
+    });
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.success).toBe(false);
+  });
 });

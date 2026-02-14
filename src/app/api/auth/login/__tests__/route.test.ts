@@ -184,4 +184,19 @@ describe('POST /api/auth/login', () => {
     expect(response.status).toBe(400);
     expect(data.success).toBe(false);
   });
+
+  it('returns 500 on database error', async () => {
+    mockSqlFn.mockRejectedValueOnce(new Error('Database connection failed'));
+
+    const request = new NextRequest('http://localhost/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ username: 'test', password: 'password123' }),
+    });
+
+    const response = await POST(request);
+    const data = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(data.success).toBe(false);
+  });
 });

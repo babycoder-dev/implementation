@@ -36,6 +36,13 @@ describe('GET /api/departments/[id]', () => {
     expect(response.status).toBe(403);
   });
 
+  it('should return 403 if leader', async () => {
+    mockGetUserFromHeaders.mockReturnValue({ userId: 'leader-1', role: 'leader' });
+    const request = new NextRequest('http://localhost/api/departments/dept-1');
+    const response = await GET(request, { params: Promise.resolve({ id: 'dept-1' }) });
+    expect(response.status).toBe(403);
+  });
+
   it('should return 404 if department not found', async () => {
     mockGetUserFromHeaders.mockReturnValue({ userId: 'admin-1', role: 'admin' });
     mockSql.mockImplementation(() => []);
@@ -84,6 +91,16 @@ describe('PUT /api/departments/[id]', () => {
     expect(response.status).toBe(403);
   });
 
+  it('should return 403 if leader', async () => {
+    mockGetUserFromHeaders.mockReturnValue({ userId: 'leader-1', role: 'leader' });
+    const request = new NextRequest('http://localhost/api/departments/dept-1', {
+      method: 'PUT',
+      body: JSON.stringify({ name: 'Updated' }),
+    });
+    const response = await PUT(request, { params: Promise.resolve({ id: 'dept-1' }) });
+    expect(response.status).toBe(403);
+  });
+
   it('should return 404 if department not found', async () => {
     mockGetUserFromHeaders.mockReturnValue({ userId: 'admin-1', role: 'admin' });
     mockSql.mockImplementation(() => []);
@@ -120,6 +137,7 @@ describe('PUT /api/departments/[id]', () => {
     const response = await PUT(request, { params: Promise.resolve({ id: 'dept-1' }) });
     expect(response.status).toBe(400);
   });
+
 });
 
 describe('DELETE /api/departments/[id]', () => {
@@ -161,4 +179,5 @@ describe('DELETE /api/departments/[id]', () => {
     const response = await DELETE(request, { params: Promise.resolve({ id: 'dept-1' }) });
     expect(response.status).toBe(400);
   });
+
 });
