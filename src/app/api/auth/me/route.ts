@@ -3,9 +3,10 @@
  * GET /api/auth/me
  */
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { sql } from '@/lib/db';
 import { getUserFromHeaders } from '@/lib/auth';
+import { successResponse, errorResponse } from '@/lib/api-response';
 
 interface UserRow {
   id: string;
@@ -22,10 +23,7 @@ export async function GET(request: NextRequest) {
     const user = getUserFromHeaders(request);
 
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: '未登录' },
-        { status: 401 }
-      );
+      return errorResponse('未登录', 401);
     }
 
     // 获取用户的完整信息，包括部门名称和创建时间
@@ -44,34 +42,24 @@ export async function GET(request: NextRequest) {
     `;
 
     if (userResult.length === 0) {
-      return NextResponse.json(
-        { success: false, error: '用户不存在' },
-        { status: 404 }
-      );
+      return errorResponse('用户不存在', 404);
     }
 
     const userData = userResult[0];
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        user: {
-          id: userData.id,
-          username: userData.username,
-          name: userData.name,
-          role: userData.role,
-          department_id: userData.department_id,
-          department_name: userData.department_name,
-          created_at: userData.created_at,
-        },
+    return successResponse({
+      user: {
+        id: userData.id,
+        username: userData.username,
+        name: userData.name,
+        role: userData.role,
+        department_id: userData.department_id,
+        department_name: userData.department_name,
+        created_at: userData.created_at,
       },
-      timestamp: new Date().toISOString(),
     });
   } catch (error) {
     console.error('Get current user error:', error);
-    return NextResponse.json(
-      { success: false, error: '获取用户信息失败' },
-      { status: 500 }
-    );
+    return errorResponse('获取用户信息失败', 500);
   }
 }

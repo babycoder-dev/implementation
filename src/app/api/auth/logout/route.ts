@@ -3,14 +3,10 @@
  * POST /api/auth/logout
  */
 
-import { NextResponse } from 'next/server';
+import { successResponse } from '@/lib/api-response';
 
 export async function POST() {
-  const response = NextResponse.json({
-    success: true,
-    message: '登出成功',
-    timestamp: new Date().toISOString(),
-  });
+  const response = successResponse(null, { message: '登出成功' });
 
   // 清除认证 cookie
   response.cookies.delete('auth_token');
