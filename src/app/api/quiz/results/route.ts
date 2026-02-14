@@ -4,7 +4,8 @@ import { quizAnswers, quizQuestions, taskAssignments, tasks, users } from '@/db/
 import { validateRequest } from '@/lib/auth/middleware'
 import { eq, and, sql } from 'drizzle-orm'
 
-// GET /api/quiz/results - 获取测验统计结果
+// GET /api/quiz/results - 获取测验统计结果 (向后兼容)
+// 推荐使用: GET /api/quiz/[taskId]/result 获取单个任务结果
 export async function GET(request: NextRequest) {
   const auth = await validateRequest(request)
   if (!auth) {
