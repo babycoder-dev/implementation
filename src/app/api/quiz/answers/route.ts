@@ -21,14 +21,16 @@ export async function GET(request: NextRequest) {
       conditions.push(eq(quizQuestions.taskId, taskId))
     }
 
+    // isCorrect is now computed at query time
     const answers = await db
       .select({
         id: quizAnswers.id,
         userId: quizAnswers.userId,
         questionId: quizAnswers.questionId,
         answer: quizAnswers.answer,
-        isCorrect: quizAnswers.isCorrect,
         answeredAt: quizAnswers.answeredAt,
+        // Compute isCorrect by comparing with correctAnswer
+        isCorrect: sql<boolean>`${quizAnswers.answer} = ${quizQuestions.correctAnswer}`,
         question: {
           id: quizQuestions.id,
           taskId: quizQuestions.taskId,

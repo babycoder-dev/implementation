@@ -72,13 +72,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: '已回答过此题目' }, { status: 400 })
     }
 
-    const isCorrect = validated.answer === question.correctAnswer
+    // isCorrect is now computed at query time, not stored
+    // This prevents data inconsistency between stored value and actual correct answer
 
     await db.insert(quizAnswers).values({
       userId: auth.userId,
       questionId: validated.questionId,
       answer: validated.answer,
-      isCorrect,
     })
 
     // SECURITY FIX: Do not expose isCorrect in response to prevent answer leakage

@@ -53,12 +53,12 @@ export const quizQuestions = pgTable('quiz_questions', {
 })
 
 // 答题记录
+// NOTE: isCorrect is computed at query time by comparing answer with correctAnswer from quizQuestions
 export const quizAnswers = pgTable('quiz_answers', {
   id: uuid('id').defaultRandom().primaryKey(),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   questionId: uuid('question_id').references(() => quizQuestions.id, { onDelete: 'cascade' }).notNull(),
   answer: integer('answer').notNull(),
-  isCorrect: boolean('is_correct').notNull(),
   answeredAt: timestamp('answered_at').defaultNow().notNull(),
 })
 

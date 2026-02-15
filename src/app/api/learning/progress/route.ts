@@ -92,13 +92,15 @@ export async function GET(request: NextRequest) {
     const answeredCount = answeredResult?.count || 0
 
     // Get correct answers count
+    // isCorrect computed at query time
     const [correctResult] = await db
       .select({
         count: count(),
       })
       .from(quizAnswers)
+      .innerJoin(quizQuestions, eq(quizAnswers.questionId, quizQuestions.id))
       .where(
-        sql`${quizAnswers.userId} = ${targetUserId} AND ${quizAnswers.isCorrect} = true`
+        sql`${quizAnswers.userId} = ${targetUserId} AND ${quizAnswers.answer} = ${quizQuestions.correctAnswer}`
       )
 
     const correctCount = correctResult?.count || 0

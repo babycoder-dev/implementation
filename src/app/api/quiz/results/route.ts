@@ -54,6 +54,7 @@ export async function GET(request: NextRequest) {
       lastAnsweredAt: Date | null
     }> = []
 
+    // isCorrect is now computed at query time
     if (taskId) {
       results = await db
         .select({
@@ -61,7 +62,7 @@ export async function GET(request: NextRequest) {
           taskTitle: tasks.title,
           totalQuestions: sql<number>`COUNT(DISTINCT ${quizQuestions.id})`,
           answeredQuestions: sql<number>`COUNT(DISTINCT ${quizAnswers.questionId})`,
-          correctAnswers: sql<number>`COALESCE(SUM(CASE WHEN ${quizAnswers.isCorrect} THEN 1 ELSE 0 END), 0)`,
+          correctAnswers: sql<number>`COALESCE(SUM(CASE WHEN ${quizAnswers.answer} = ${quizQuestions.correctAnswer} THEN 1 ELSE 0 END), 0)`,
           lastAnsweredAt: sql<Date | null>`MAX(${quizAnswers.answeredAt})`,
         })
         .from(quizQuestions)
@@ -76,7 +77,7 @@ export async function GET(request: NextRequest) {
           taskTitle: tasks.title,
           totalQuestions: sql<number>`COUNT(DISTINCT ${quizQuestions.id})`,
           answeredQuestions: sql<number>`COUNT(DISTINCT ${quizAnswers.questionId})`,
-          correctAnswers: sql<number>`COALESCE(SUM(CASE WHEN ${quizAnswers.isCorrect} THEN 1 ELSE 0 END), 0)`,
+          correctAnswers: sql<number>`COALESCE(SUM(CASE WHEN ${quizAnswers.answer} = ${quizQuestions.correctAnswer} THEN 1 ELSE 0 END), 0)`,
           lastAnsweredAt: sql<Date | null>`MAX(${quizAnswers.answeredAt})`,
         })
         .from(quizQuestions)

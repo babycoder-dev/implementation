@@ -46,13 +46,14 @@ export async function GET(request: NextRequest) {
       ? Math.round((Number(completedAssignments.count) / Number(assignmentCount.count)) * 100)
       : 0
 
-    // 答题统计
+    // 答题统计 - isCorrect computed at query time
     const answerStats = await db
       .select({
         total: count(),
-        correct: count(sql`CASE WHEN ${quizAnswers.isCorrect} THEN 1 END`),
+        correct: count(sql`CASE WHEN ${quizAnswers.answer} = ${quizQuestions.correctAnswer} THEN 1 END`),
       })
       .from(quizAnswers)
+      .innerJoin(quizQuestions, eq(quizAnswers.questionId, quizQuestions.id))
 
     // 新增用户数（本周）
     const [newUsersThisWeek] = await db

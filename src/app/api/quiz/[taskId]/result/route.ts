@@ -65,11 +65,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Get quiz statistics for this task (filtered by user)
+    // isCorrect is now computed at query time by comparing answer with correctAnswer
     const stats = await db
       .select({
         totalQuestions: sql<number>`COUNT(DISTINCT ${quizQuestions.id})`,
         answeredQuestions: sql<number>`COUNT(DISTINCT ${quizAnswers.questionId})`,
-        correctAnswers: sql<number>`COALESCE(SUM(CASE WHEN ${quizAnswers.isCorrect} THEN 1 ELSE 0 END), 0)`,
+        correctAnswers: sql<number>`COALESCE(SUM(CASE WHEN ${quizAnswers.answer} = ${quizQuestions.correctAnswer} THEN 1 ELSE 0 END), 0)`,
         lastAnsweredAt: sql<Date | null>`MAX(${quizAnswers.answeredAt})`,
       })
       .from(quizQuestions)
