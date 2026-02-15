@@ -1,5 +1,13 @@
 import { pgTable, uuid, text, timestamp, integer, boolean, jsonb, numeric } from 'drizzle-orm/pg-core'
 
+// 部门表
+export const departments = pgTable('departments', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  name: text('name').notNull().unique(),
+  description: text('description'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
 // 用户表
 export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -7,6 +15,7 @@ export const users = pgTable('users', {
   passwordHash: text('password_hash').notNull(),
   name: text('name').notNull(),
   role: text('role').notNull().default('user'), // admin | user
+  departmentId: uuid('department_id').references(() => departments.id),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 
