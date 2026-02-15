@@ -1,9 +1,16 @@
 /**
  * Rate limiting utility for API routes.
  *
- * Uses a sliding window algorithm with in-memory storage.
+ * Uses a fixed window algorithm with in-memory storage.
  * For production, consider using Redis for distributed rate limiting.
  */
+
+// Maximum store size to prevent memory exhaustion DoS
+const MAX_STORE_SIZE = 10000
+
+// FIX: Add mutex to prevent race condition in rate limit checks
+// Using a simple Set for tracking keys currently being processed
+const processingKeys = new Set<string>()
 
 interface RateLimitEntry {
   count: number
@@ -23,9 +30,12 @@ const rateLimitStore = new Map<string, RateLimitEntry>()
 
 /**
  * Creates a unique key for the rate limit entry.
+ * FIX: Encode identifier to prevent key collision with pipe delimiter
  */
 function getStoreKey(identifier: string, limit: number, windowMs: number): string {
-  return `${identifier}|${limit}|${windowMs}`
+  // Escape pipe characters in identifier to prevent key collision
+  const safeIdentifier = identifier.replace(/\|/g, '%7C')
+  return `${safeIdentifier}|${limit}|${windowMs}`
 }
 
 /**
@@ -65,70 +75,110 @@ export function rateLimit(
   limit: number,
   windowMs: number
 ): RateLimitResult {
-  const now = Date.now()
-  const key = getStoreKey(identifier, limit, windowMs)
-  const existing = rateLimitStore.get(key)
-
-  // Periodic cleanup of expired entries (every 1000 calls to avoid performance impact)
-  if (rateLimitStore.size > 0 && Math.random() < 0.001) {
-    cleanupExpiredEntries()
+  // FIX: Add input validation
+  if (!identifier || typeof identifier !== 'string') {
+    return { allowed: false, remaining: 0, limit: 0, resetAt: Date.now() }
+  }
+  if (!Number.isInteger(limit) || limit <= 0) {
+    return { allowed: false, remaining: 0, limit: 0, resetAt: Date.now() }
+  }
+  if (!Number.isInteger(windowMs) || windowMs <= 0) {
+    return { allowed: false, remaining: 0, limit: 0, resetAt: Date.now() }
   }
 
-  if (!existing) {
-    // First request from this identifier with this config
-    rateLimitStore.set(key, {
-      count: 1,
-      windowStart: now,
-    })
+  const now = Date.now()
+  const key = getStoreKey(identifier, limit, windowMs)
 
-    return {
-      allowed: true,
-      remaining: limit - 1,
-      limit,
-      resetAt: now + windowMs,
+  // FIX: Check if this key is currently being processed (race condition protection)
+  if (processingKeys.has(key)) {
+    // Key is being processed, return conservative result
+    const existing = rateLimitStore.get(key)
+    if (existing) {
+      const windowEnd = existing.windowStart + windowMs
+      return {
+        allowed: existing.count < limit,
+        remaining: Math.max(0, limit - existing.count),
+        limit,
+        resetAt: windowEnd,
+      }
     }
   }
 
-  // Check if window has expired
-  const windowEnd = existing.windowStart + windowMs
-  if (now >= windowEnd) {
-    // Window expired, start fresh
+  // Mark key as processing
+  processingKeys.add(key)
+
+  try {
+    const existing = rateLimitStore.get(key)
+
+    // FIX: Use size-based cleanup threshold instead of random cleanup
+    // This ensures cleanup happens deterministically
+    if (rateLimitStore.size >= MAX_STORE_SIZE) {
+      cleanupExpiredEntries()
+      // If still at capacity after cleanup, reject to prevent memory exhaustion
+      if (rateLimitStore.size >= MAX_STORE_SIZE) {
+        return { allowed: false, remaining: 0, limit, resetAt: now + windowMs }
+      }
+    }
+
+    if (!existing) {
+      // First request from this identifier with this config
+      rateLimitStore.set(key, {
+        count: 1,
+        windowStart: now,
+      })
+
+      return {
+        allowed: true,
+        remaining: limit - 1,
+        limit,
+        resetAt: now + windowMs,
+      }
+    }
+
+    // Check if window has expired
+    const windowEnd = existing.windowStart + windowMs
+    if (now >= windowEnd) {
+      // Window expired, start fresh
+      const newEntry = {
+        count: 1,
+        windowStart: now,
+      }
+      rateLimitStore.set(key, newEntry)
+
+      return {
+        allowed: true,
+        remaining: limit - 1,
+        limit,
+        resetAt: now + windowMs,
+      }
+    }
+
+    // Within the window, check if limit exceeded
+    if (existing.count >= limit) {
+      return {
+        allowed: false,
+        remaining: 0,
+        limit,
+        resetAt: windowEnd,
+      }
+    }
+
+    // Increment count
     const newEntry = {
-      count: 1,
-      windowStart: now,
+      count: existing.count + 1,
+      windowStart: existing.windowStart,
     }
     rateLimitStore.set(key, newEntry)
 
     return {
       allowed: true,
-      remaining: limit - 1,
-      limit,
-      resetAt: now + windowMs,
-    }
-  }
-
-  // Within the window, check if limit exceeded
-  if (existing.count >= limit) {
-    return {
-      allowed: false,
-      remaining: 0,
+      remaining: limit - newEntry.count,
       limit,
       resetAt: windowEnd,
     }
-  }
-
-  // Increment count
-  const newEntry = {
-    count: existing.count + 1,
-    windowStart: existing.windowStart,
-  }
-  rateLimitStore.set(key, newEntry)
-
-  return {
-    allowed: true,
-    remaining: limit - newEntry.count,
-    limit,
-    resetAt: windowEnd,
+  } finally {
+    // Always remove key from processing set
+    processingKeys.delete(key)
   }
 }
 

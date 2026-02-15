@@ -27,6 +27,7 @@ interface AnswerResult {
 interface QuizResult {
   score: number
   total: number
+  passed: boolean
   answers: AnswerResult[]
 }
 
@@ -44,8 +45,20 @@ export default function QuizClient({ taskId, questions }: QuizClientProps) {
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
-  const progress = (Object.keys(answers).length / questions.length) * 100
+  // FIX: Guard against division by zero when questions array is empty
+  const progress = questions.length > 0 ? (Object.keys(answers).length / questions.length) * 100 : 0
   const isAnswered = (questionId: string) => questionId in answers
+
+  // FIX: Early return for empty questions
+  if (!questions || questions.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-8">
+          <p className="text-center text-gray-500">暂无题目</p>
+        </CardContent>
+      </Card>
+    )
+  }
 
   const handleAnswerChange = (questionId: string, value: string) => {
     setAnswers(prev => ({
@@ -95,7 +108,8 @@ export default function QuizClient({ taskId, questions }: QuizClientProps) {
   }
 
   if (submitted && result) {
-    const passed = result.score >= Math.ceil(result.total * 0.6)
+    // FIX: Use passed from backend instead of recalculating (backend handles strictMode)
+    const passed = result.passed
 
     return (
       <div className="container mx-auto py-8 max-w-3xl space-y-6">
@@ -131,14 +145,14 @@ export default function QuizClient({ taskId, questions }: QuizClientProps) {
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground">你的答案：</span>
                         <span className={answer.isCorrect ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
-                          {String.fromCharCode(65 + answer.userAnswer)}. {answer.options[answer.userAnswer]}
+                          {String.fromCharCode(65 + answer.userAnswer)}. {answer.options[answer.userAnswer] || '无效答案'}
                         </span>
                       </div>
                       {!answer.isCorrect && (
                         <div className="flex items-center gap-2">
                           <span className="text-muted-foreground">正确答案：</span>
                           <span className="text-green-600 font-medium">
-                            {String.fromCharCode(65 + answer.correctAnswer)}. {answer.options[answer.correctAnswer]}
+                            {String.fromCharCode(65 + answer.correctAnswer)}. {answer.options[answer.correctAnswer] || '无效答案'}
                           </span>
                         </div>
                       )}
@@ -232,7 +246,7 @@ export default function QuizClient({ taskId, questions }: QuizClientProps) {
           {questions.map((q, idx) => (
             <Button
               key={q.id}
-              variant={idx === currentQuestion ? 'primary' : isAnswered(q.id) ? 'secondary' : 'outline'}
+              variant={idx === currentQuestion ? 'default' : isAnswered(q.id) ? 'secondary' : 'outline'}
               size="sm"
               className="w-8 h-8 p-0"
               onClick={() => setCurrentQuestion(idx)}
