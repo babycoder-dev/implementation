@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/db'
-import { quizAnswers, quizQuestions } from '@/db/schema'
+import { quizAnswers, quizQuestions, taskAssignments } from '@/db/schema'
 import { validateRequest } from '@/lib/auth/middleware'
 import { ZodError, z } from 'zod'
 import { eq, and } from 'drizzle-orm'
@@ -31,6 +31,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: '题目不存在' }, { status: 404 })
     }
 
+    // CRITICAL FIX: Validate answer index is within options bounds
+    const options = question.options as unknown[]
+    if (validated.answer >= options.length) {
+      return NextResponse.json(
+        { success: false, error: '答案选项无效' },
+        { status: 400 }
+      )
+    }
+
+    // CRITICAL FIX: Check user is assigned to the task (authorization)
+    const [assignment] = await db
+      .select()
+      .from(taskAssignments)
+      .where(
+        and(
+          eq(taskAssignments.taskId, question.taskId),
+          eq(taskAssignments.userId, auth.userId)
+        )
+      )
+      .limit(1)
+
+    if (!assignment) {
+      return NextResponse.json({ success: false, error: '无权限回答此题目' }, { status: 403 })
+    }
+
     // 检查是否已回答
     const [existing] = await db
       .select()
@@ -56,9 +81,10 @@ export async function POST(request: NextRequest) {
       isCorrect,
     })
 
+    // SECURITY FIX: Do not expose isCorrect in response to prevent answer leakage
+    // Users can brute-force answers by trying each option until isCorrect=true
     return NextResponse.json({
       success: true,
-      isCorrect,
     }, { status: 201 })
   } catch (error) {
     if (error instanceof ZodError) {
@@ -69,6 +95,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    console.error('Quiz answer submission error:', error)
     return NextResponse.json(
       { success: false, error: '提交失败' },
       { status: 500 }

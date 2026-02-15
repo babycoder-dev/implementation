@@ -194,34 +194,18 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    // Check if user is admin - admins can create questions for any task
+    // SECURITY FIX: Only admins can create quiz questions
     const [user] = await db
       .select()
       .from(users)
       .where(eq(users.id, auth.userId))
       .limit(1)
 
-    const isAdmin = user?.role === 'admin'
-
-    // Check if user has access to this task (skip for admins)
-    if (!isAdmin) {
-      const [assignment] = await db
-        .select()
-        .from(taskAssignments)
-        .where(
-          and(
-            eq(taskAssignments.taskId, taskId),
-            eq(taskAssignments.userId, auth.userId)
-          )
-        )
-        .limit(1)
-
-      if (!assignment) {
-        return NextResponse.json(
-          { success: false, error: '无权访问此任务' },
-          { status: 403 }
-        )
-      }
+    if (!user || user.role !== 'admin') {
+      return NextResponse.json(
+        { success: false, error: '只有管理员可以添加题目' },
+        { status: 403 }
+      )
     }
 
     // Create the question

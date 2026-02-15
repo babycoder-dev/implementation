@@ -119,15 +119,22 @@ export async function POST(request: NextRequest) {
     const questionIds = answers.map(a => a.questionId)
 
     // Fetch all questions to verify and get correct answers
+    // CRITICAL FIX: Also filter by taskId to ensure questions belong to this task
     const questions = await db
       .select({
         id: quizQuestions.id,
+        taskId: quizQuestions.taskId,
         question: quizQuestions.question,
         options: quizQuestions.options,
         correctAnswer: quizQuestions.correctAnswer,
       })
       .from(quizQuestions)
-      .where(inArray(quizQuestions.id, questionIds))
+      .where(
+        and(
+          eq(quizQuestions.taskId, taskId),
+          inArray(quizQuestions.id, questionIds)
+        )
+      )
 
     if (questions.length !== questionIds.length) {
       return NextResponse.json(
@@ -138,6 +145,17 @@ export async function POST(request: NextRequest) {
 
     // Create a map for quick lookup
     const questionMap = new Map(questions.map(q => [q.id, q]))
+
+    // CRITICAL FIX: Validate answer index is within options bounds
+    for (const answer of answers) {
+      const question = questionMap.get(answer.questionId)
+      if (question && answer.answer >= (question.options as unknown[]).length) {
+        return NextResponse.json(
+          { success: false, error: '答案选项无效' },
+          { status: 400 }
+        )
+      }
+    }
 
     // Check for already answered questions (filter by current user)
     const answeredQuestions = await db

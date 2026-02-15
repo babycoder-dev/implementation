@@ -168,7 +168,7 @@ export async function POST(request: NextRequest) {
         taskId: quizQuestions.taskId,
         question: quizQuestions.question,
         options: quizQuestions.options,
-        correctAnswer: quizQuestions.correctAnswer,
+        // SECURITY FIX: Do not return correctAnswer to prevent answer leakage
       })
 
     return NextResponse.json({

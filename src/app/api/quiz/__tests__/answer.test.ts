@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { POST } from '../answer/route'
 import { db } from '@/db'
-import { quizAnswers, quizQuestions } from '@/db/schema'
+import { quizAnswers, quizQuestions, taskAssignments } from '@/db/schema'
 
 // Mock database
 vi.mock('@/db', () => ({
@@ -37,9 +37,13 @@ describe('POST /api/quiz/answer', () => {
     const mockWhere = vi.fn().mockReturnThis()
     const mockLimit = vi.fn().mockImplementation(() => {
       selectCallCount++
-      // First call: return question, second call: return empty array (no existing answer)
+      // 1st: question, 2nd: task assignment (authorized), 3rd: no existing answer
       if (selectCallCount === 1) {
         return Promise.resolve([mockQuestion])
+      }
+      if (selectCallCount === 2) {
+        // User is assigned to the task
+        return Promise.resolve([{ id: '1', taskId: '660e8400-e29b-41d4-a716-446655440000', userId: 'user-123' }])
       }
       return Promise.resolve([])
     })
@@ -78,7 +82,7 @@ describe('POST /api/quiz/answer', () => {
 
     expect(response.status).toBe(201)
     expect(data.success).toBe(true)
-    expect(data.isCorrect).toBe(true)
+    // Note: isCorrect is no longer returned to prevent answer leakage
   })
 
   it('should not allow duplicate answers', async () => {
@@ -99,7 +103,7 @@ describe('POST /api/quiz/answer', () => {
       answeredAt: new Date(),
     }
 
-    // First call returns question, second call returns existing answer
+    // Query order: 1=question, 2=task assignment, 3=existing answer
     let selectCallCount = 0
 
     const mockFrom = vi.fn().mockReturnThis()
@@ -109,6 +113,11 @@ describe('POST /api/quiz/answer', () => {
       if (selectCallCount === 1) {
         return Promise.resolve([mockQuestion])
       }
+      if (selectCallCount === 2) {
+        // User is assigned to task
+        return Promise.resolve([{ id: '1', taskId: '660e8400-e29b-41d4-a716-446655440000', userId: 'user-123' }])
+      }
+      // Existing answer check
       return Promise.resolve([mockExistingAnswer])
     })
 
