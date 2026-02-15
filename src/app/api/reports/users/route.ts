@@ -3,6 +3,13 @@ import { db } from '@/db'
 import { tasks, taskAssignments, users, quizSubmissions, departments, learningLogs, videoProgress } from '@/db/schema'
 import { validateRequest } from '@/lib/auth/middleware'
 import { count, eq, sql, and, like, gte, lte } from 'drizzle-orm'
+import { z } from 'zod'
+
+// Query validation schema
+const querySchema = z.object({
+  departmentId: z.string().uuid().optional(),
+  search: z.string().max(100).optional(),
+})
 
 export async function GET(request: NextRequest) {
   const auth = await validateRequest(request)
@@ -16,8 +23,18 @@ export async function GET(request: NextRequest) {
   }
 
   const { searchParams } = new URL(request.url)
-  const departmentId = searchParams.get('departmentId')
-  const search = searchParams.get('search')
+  const params = Object.fromEntries(searchParams)
+
+  // Validate query parameters
+  const validation = querySchema.safeParse(params)
+  if (!validation.success) {
+    return NextResponse.json(
+      { success: false, error: '参数验证失败: ' + validation.error.issues[0]?.message },
+      { status: 400 }
+    )
+  }
+
+  const { departmentId, search } = validation.data
 
   try {
     // Build user filter
@@ -66,7 +83,7 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
     })
   } catch (error) {
-    console.error('Failed to get user report:', error)
+    console.error('Failed to get user report:', error instanceof Error ? error.message : 'Unknown error')
     return NextResponse.json({ success: false, error: '获取用户报表失败' }, { status: 500 })
   }
 }
