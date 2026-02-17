@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
       })),
     })
   } catch (error) {
-    console.error('Failed to get departments:', error)
+    console.error('Failed to get departments:', error instanceof Error ? error.message : 'Unknown error')
     return NextResponse.json(
       { success: false, error: '获取部门列表失败' },
       { status: 500 }
@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
-    console.error('Failed to create department:', error)
+    console.error('Failed to create department:', error instanceof Error ? error.message : 'Unknown error')
     return NextResponse.json(
       { success: false, error: '创建部门失败' },
       { status: 500 }

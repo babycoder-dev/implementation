@@ -5,9 +5,13 @@ import { validateRequest } from '@/lib/auth/middleware'
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 
+const uuidSchema = z.string().uuid('无效的部门ID格式')
+
 const updateDepartmentSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   description: z.string().max(500).optional(),
+}).refine(data => data.name !== undefined || data.description !== undefined, {
+  message: '至少需要提供 name 或 description 字段'
 })
 
 // PUT /api/admin/departments/[id] - 更新部门
@@ -16,6 +20,15 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
+
+  // Validate UUID format
+  const idValidation = uuidSchema.safeParse(id)
+  if (!idValidation.success) {
+    return NextResponse.json(
+      { success: false, error: '无效的部门ID' },
+      { status: 400 }
+    )
+  }
 
   const auth = await validateRequest(request)
   if (!auth) {
@@ -34,6 +47,14 @@ export async function PUT(
       return NextResponse.json(
         { success: false, error: '需要管理员权限' },
         { status: 403 }
+      )
+    }
+
+    // Check if admin is in this department
+    if (currentUser.departmentId === id) {
+      return NextResponse.json(
+        { success: false, error: '不能删除自己所在的部门' },
+        { status: 400 }
       )
     }
 
@@ -96,7 +117,7 @@ export async function PUT(
         { status: 400 }
       )
     }
-    console.error('Failed to update department:', error)
+    console.error('Failed to update department:', error instanceof Error ? error.message : 'Unknown error')
     return NextResponse.json(
       { success: false, error: '更新部门失败' },
       { status: 500 }
@@ -110,6 +131,15 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
+
+  // Validate UUID format
+  const idValidation = uuidSchema.safeParse(id)
+  if (!idValidation.success) {
+    return NextResponse.json(
+      { success: false, error: '无效的部门ID' },
+      { status: 400 }
+    )
+  }
 
   const auth = await validateRequest(request)
   if (!auth) {
@@ -128,6 +158,14 @@ export async function DELETE(
       return NextResponse.json(
         { success: false, error: '需要管理员权限' },
         { status: 403 }
+      )
+    }
+
+    // Check if admin is in this department
+    if (currentUser.departmentId === id) {
+      return NextResponse.json(
+        { success: false, error: '不能删除自己所在的部门' },
+        { status: 400 }
       )
     }
 
@@ -168,7 +206,7 @@ export async function DELETE(
       data: { message: '部门已删除' },
     })
   } catch (error) {
-    console.error('Failed to delete department:', error)
+    console.error('Failed to delete department:', error instanceof Error ? error.message : 'Unknown error')
     return NextResponse.json(
       { success: false, error: '删除部门失败' },
       { status: 500 }
